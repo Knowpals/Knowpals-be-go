@@ -1,0 +1,35 @@
+mysql:
+  dsn: "root:your_password@tcp(localhost:3306)/database_ame?charset=utf8mb4&parseTime=True&loc=Local"
+  logfile: "logs/mysql.log"          # 数据库日志存储位置
+
+jwt:
+  secretKey: "your-jwt-secret-key-here"       # JWT 签名密钥
+  encKey: "your-encryption-key-here"          # 敏感数据加密密钥
+  timeout: 2592000                            # 过期时间（秒），默认一个月
+
+log:
+  file: "logs/app.log"
+  maxSize: 100
+  maxBackups: 3
+  maxAge: 7
+  compress: false
+
+redis:
+  addr: "localhost:6379"
+  password: "your_password"
+  db: 0
+
+smtp:
+  secret: "your_secret"
+  server: "smtp.qq.com"
+  addr: "your_addr"
+
+otel:
+  enabled: true
+  serviceName: "knowpals-be-go"
+  serviceVersion: "dev"
+  traceExporter: "otlp"
+  metricsExporter: "otlp"
+  endpoint: "localhost:4317"
+  insecure: true
+  metricsInterval: 10

@@ -1,0 +1,123 @@
+definitions:
+  user.LoginByPassword:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  user.LoginByVerifyCode:
+    properties:
+      email:
+        type: string
+      verify_code:
+        type: string
+    type: object
+  user.RegisterRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  user.SendCodeRequest:
+    properties:
+      email:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/user/getUser/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 根据id查询用户
+      tags:
+      - user
+  /api/v1/user/loginByCode:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 登陆参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.LoginByVerifyCode'
+      produces:
+      - application/json
+      responses: {}
+      summary: 用户验证码登录
+      tags:
+      - user
+  /api/v1/user/loginByPassword:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 登陆参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.LoginByPassword'
+      produces:
+      - application/json
+      responses: {}
+      summary: 用户密码登录
+      tags:
+      - user
+  /api/v1/user/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 注册参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.RegisterRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: 用户注册
+      tags:
+      - user
+  /api/v1/user/sendCode:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 注册参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.SendCodeRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: 发送验证码
+      tags:
+      - user
+swagger: "2.0"
