@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/Knowpals/Knowpals-be-go/config"
+	class2 "github.com/Knowpals/Knowpals-be-go/controller/class"
 	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
 	"github.com/Knowpals/Knowpals-be-go/infra/email"
 	"github.com/Knowpals/Knowpals-be-go/ioc"
@@ -15,6 +16,7 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
+	class3 "github.com/Knowpals/Knowpals-be-go/service/class"
 	"github.com/Knowpals/Knowpals-be-go/service/user"
 	"github.com/Knowpals/Knowpals-be-go/web"
 )
@@ -25,15 +27,18 @@ func InitApp(conf *config.Config) *App {
 	jwtHandler := ijwt.NewJwtHandler(conf)
 	db := ioc.InitDB(conf)
 	userDao := dao.NewUserDao(db)
+	classDao := dao.NewClassDao(db)
 	client := ioc.InitRedis(conf)
 	emailClient := email.NewEmailClient(client, conf)
 	authCache := cache.NewAuthCache(client)
 	userService := user.NewUserService(userDao, emailClient, authCache)
+	classService := class3.NewClassService(classDao)
 	userController := user2.NewUserController(jwtHandler, userService)
+	classController := class2.NewClassController(classService, userService)
 	authMiddleware := middleware.NewAuthMiddleware(jwtHandler)
 	logger := ioc.InitZapLogger(conf)
 	loggerMiddleware := middleware.NewLoggerMiddleware(logger)
-	engine := web.NewGinEngine(userController, authMiddleware, loggerMiddleware)
+	engine := web.NewGinEngine(userController, classController, authMiddleware, loggerMiddleware)
 	app := NewApp(engine)
 	return app
 }

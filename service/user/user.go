@@ -47,7 +47,7 @@ func (us *userService) GetUserByID(ctx context.Context, id uint) (domain.User, e
 
 func (us *userService) SendCode(ctx context.Context, targetAddr string) error {
 	//生成验证码
-	code := tool.GenerateVerifyCode()
+	code := tool.GenerateRandomCode(6)
 
 	err := us.cache.SetCode(ctx, code, targetAddr)
 	if err != nil {

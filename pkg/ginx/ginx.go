@@ -104,6 +104,120 @@ func WrapUri[Req any](fn func(*gin.Context, Req) (http2.Response, error)) gin.Ha
 	}
 }
 
+func WrapReqAndClaim[Req any](fn func(*gin.Context, Req, ijwt.UserClaim) (http2.Response, error)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if len(ctx.Errors) > 0 {
+			return
+		}
+
+		claim, err := GetClaim(ctx)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, http2.Response{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("鉴权错误: %v", err.Error()),
+				Data:    nil,
+			})
+			return
+		}
+
+		var req Req
+		if err := ctx.Bind(&req); err != nil {
+			ctx.JSON(http.StatusBadRequest, http2.Response{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("请求参数错误: %v", err.Error()),
+				Data:    nil,
+			})
+			return
+		}
+
+		res, err := fn(ctx, req, claim)
+		if err != nil {
+			ctx.Error(err)
+			customErr := errorx.ToCustomError(err)
+			ctx.JSON(customErr.HttpCode, http2.Response{
+				Code:    customErr.Code,
+				Message: customErr.Msg,
+				Data:    nil,
+			})
+			return
+		}
+		ctx.JSON(ctx.Writer.Status(), res)
+	}
+}
+
+func WrapUriAndClaim[Req any](fn func(*gin.Context, Req, ijwt.UserClaim) (http2.Response, error)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if len(ctx.Errors) > 0 {
+			return
+		}
+
+		claim, err := GetClaim(ctx)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, http2.Response{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("鉴权错误: %v", err.Error()),
+				Data:    nil,
+			})
+			return
+		}
+
+		var req Req
+		err = ctx.BindUri(&req)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, http2.Response{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("请求参数错误: %v", err.Error()),
+				Data:    nil,
+			})
+			return
+		}
+
+		res, err := fn(ctx, req, claim)
+		if err != nil {
+			ctx.Error(err)
+			e := errorx.ToCustomError(err)
+			ctx.JSON(e.HttpCode, http2.Response{
+				Code:    e.Code,
+				Message: e.Msg,
+				Data:    nil,
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, res)
+	}
+}
+
+func WrapClaim(fn func(*gin.Context, ijwt.UserClaim) (http2.Response, error)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if len(ctx.Errors) > 0 {
+			return
+		}
+		claim, err := GetClaim(ctx)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, http2.Response{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("鉴权错误: %v", err.Error()),
+				Data:    nil,
+			})
+			return
+		}
+
+		res, err := fn(ctx, claim)
+		if err != nil {
+			ctx.Error(err)
+			customErr := errorx.ToCustomError(err)
+			ctx.JSON(customErr.HttpCode, http2.Response{
+				Code:    customErr.Code,
+				Message: customErr.Msg,
+				Data:    nil,
+			})
+			return
+		}
+		ctx.JSON(ctx.Writer.Status(), res)
+	}
+}
+
 func WrapFormDataAndClaim[Req any](fn func(*gin.Context, Req, multipart.File, *multipart.FileHeader, ijwt.UserClaim) (http2.Response, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claim, err := GetClaim(c)

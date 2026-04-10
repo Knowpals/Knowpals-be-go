@@ -1315,6 +1315,9 @@ const docTemplate = `{
                 "class_name": {
                     "type": "string"
                 },
+                "invite_code": {
+                    "type": "string"
+                },
                 "teacher_id": {
                     "type": "integer"
                 },

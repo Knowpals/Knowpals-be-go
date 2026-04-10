@@ -2,12 +2,15 @@ package tool
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 )
 
-func GenerateVerifyCode() string {
+func GenerateRandomCode(n int) string {
 	rand.Seed(time.Now().UnixNano())
-	code := rand.Intn(1000000)
-	return fmt.Sprintf("%06d", code)
+	max := int(math.Pow10(n)) - 1
+	min := int(math.Pow10(n - 1))
+	code := rand.Intn(max-min+1) + min
+	return fmt.Sprintf("%0*d", n, code)
 }

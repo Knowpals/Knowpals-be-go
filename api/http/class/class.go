@@ -15,11 +15,11 @@ type JoinClassRequest struct {
 }
 
 type QuitClassRequest struct {
-	ClassID uint `json:"class_id" binding:"required"`
+	ClassID uint `uri:"class_id" binding:"required"`
 }
 
 type GetClassInfoRequest struct {
-	ClassID uint `json:"class_id" binding:"required"`
+	ClassID uint `uri:"class_id" binding:"required"`
 }
 
 type ClassInfo struct {
@@ -27,6 +27,7 @@ type ClassInfo struct {
 	TeacherName string `json:"teacher_name"`
 	ClassID     uint   `json:"class_id"`
 	ClassName   string `json:"class_name"`
+	InviteCode  string `json:"invite_code"`
 }
 
 type GetClassInfoResp struct {
@@ -52,5 +53,5 @@ type GetClassStudentsResp struct {
 }
 
 type GetClassStudentsRequest struct {
-	ClassID uint `json:"class_id" binding:"required"`
+	ClassID uint `uri:"class_id" binding:"required"`
 }
