@@ -1,4 +1,4 @@
-package api
+package http
 
 import "net/http"
 
@@ -8,7 +8,7 @@ type Response struct {
 	Data    interface{} `json:"data"`
 }
 
-var SuccessResp = func(data interface{}) Response {
+var Success = func(data interface{}) Response {
 	return Response{
 		Code:    http.StatusOK,
 		Message: "success",

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Knowpals/Knowpals-be-go/api"
+	http2 "github.com/Knowpals/Knowpals-be-go/api/http"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ginx"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/gin-gonic/gin"
@@ -24,7 +24,7 @@ func (am *AuthMiddleware) MiddlewareFunc() gin.HandlerFunc {
 		authStr := c.GetHeader("Authorization")
 		if authStr == "" {
 			c.Error(errors.New("认证头部缺失"))
-			c.JSON(http.StatusUnauthorized, api.Response{
+			c.JSON(http.StatusUnauthorized, http2.Response{
 				Code:    http.StatusUnauthorized,
 				Message: "认证头部缺失",
 				Data:    nil,
@@ -35,7 +35,7 @@ func (am *AuthMiddleware) MiddlewareFunc() gin.HandlerFunc {
 		segs := strings.Split(authStr, " ")
 		if len(segs) != 2 || segs[0] != "Bearer" {
 			c.Error(errors.New("认证头部格式错误"))
-			c.JSON(http.StatusUnauthorized, api.Response{
+			c.JSON(http.StatusUnauthorized, http2.Response{
 				Code:    http.StatusUnauthorized,
 				Message: "认证头部格式错误",
 				Data:    nil,
@@ -46,7 +46,7 @@ func (am *AuthMiddleware) MiddlewareFunc() gin.HandlerFunc {
 		uc, err := am.jwt.ParseToken(segs[1])
 		if err != nil {
 			c.Error(err)
-			c.JSON(http.StatusUnauthorized, api.Response{
+			c.JSON(http.StatusUnauthorized, http2.Response{
 				Code:    http.StatusUnauthorized,
 				Message: "无效或过期的身份令牌",
 				Data:    nil,

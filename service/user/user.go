@@ -1,8 +1,9 @@
-package service
+package user
 
 import (
 	"context"
 	errors1 "errors"
+
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	"github.com/Knowpals/Knowpals-be-go/errors"
 	"github.com/Knowpals/Knowpals-be-go/infra/email"

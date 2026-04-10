@@ -8,14 +8,14 @@ package main
 
 import (
 	"github.com/Knowpals/Knowpals-be-go/config"
-	"github.com/Knowpals/Knowpals-be-go/controller"
+	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
 	"github.com/Knowpals/Knowpals-be-go/infra/email"
 	"github.com/Knowpals/Knowpals-be-go/ioc"
 	"github.com/Knowpals/Knowpals-be-go/middleware"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
-	"github.com/Knowpals/Knowpals-be-go/service"
+	"github.com/Knowpals/Knowpals-be-go/service/user"
 	"github.com/Knowpals/Knowpals-be-go/web"
 )
 
@@ -28,8 +28,8 @@ func InitApp(conf *config.Config) *App {
 	client := ioc.InitRedis(conf)
 	emailClient := email.NewEmailClient(client, conf)
 	authCache := cache.NewAuthCache(client)
-	userService := service.NewUserService(userDao, emailClient, authCache)
-	userController := controller.NewUserController(jwtHandler, userService)
+	userService := user.NewUserService(userDao, emailClient, authCache)
+	userController := user2.NewUserController(jwtHandler, userService)
 	authMiddleware := middleware.NewAuthMiddleware(jwtHandler)
 	logger := ioc.InitZapLogger(conf)
 	loggerMiddleware := middleware.NewLoggerMiddleware(logger)

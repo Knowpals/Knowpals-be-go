@@ -1,13 +1,13 @@
 package web
 
 import (
-	"github.com/Knowpals/Knowpals-be-go/controller"
+	"github.com/Knowpals/Knowpals-be-go/controller/user"
 	"github.com/Knowpals/Knowpals-be-go/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 func NewGinEngine(
-	uc controller.UserController,
+	uc user.UserController,
 	auth *middleware.AuthMiddleware,
 	log *middleware.LoggerMiddleware,
 	// otel *middleware.OtelMiddleware,

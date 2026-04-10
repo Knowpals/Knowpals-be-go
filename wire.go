@@ -6,14 +6,14 @@ package main
 
 import (
 	"github.com/Knowpals/Knowpals-be-go/config"
-	"github.com/Knowpals/Knowpals-be-go/controller"
+	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
 	"github.com/Knowpals/Knowpals-be-go/infra/email"
 	"github.com/Knowpals/Knowpals-be-go/ioc"
 	"github.com/Knowpals/Knowpals-be-go/middleware"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
-	"github.com/Knowpals/Knowpals-be-go/service"
+	"github.com/Knowpals/Knowpals-be-go/service/user"
 	"github.com/Knowpals/Knowpals-be-go/web"
 	"github.com/google/wire"
 )
@@ -41,10 +41,10 @@ func InitApp(conf *config.Config) *App {
 		cache.NewAuthCache,
 
 		//service
-		service.NewUserService,
+		user.NewUserService,
 
 		//controller
-		controller.NewUserController,
+		user2.NewUserController,
 
 		//web
 		web.NewGinEngine,

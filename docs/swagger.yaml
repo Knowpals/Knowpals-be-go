@@ -1,4 +1,309 @@
 definitions:
+  behavior.GetClassVideoProgressResp:
+    properties:
+      progress_list:
+        items:
+          $ref: '#/definitions/behavior.VideoProgress'
+        type: array
+    type: object
+  behavior.RecordActionReq:
+    properties:
+      duration:
+        type: integer
+      event:
+        description: pause|replay
+        type: string
+      segment_id:
+        type: integer
+      video_id:
+        type: integer
+    type: object
+  behavior.UpdateProgressReq:
+    properties:
+      current_sec:
+        type: integer
+      video_id:
+        type: integer
+    type: object
+  behavior.VideoProgress:
+    properties:
+      progress_percent:
+        description: 完成进度百分比
+        type: integer
+      status:
+        description: finished | in_progress | todo
+        type: string
+      title:
+        type: string
+      video_id:
+        type: integer
+      watch_time:
+        description: 总观看时长
+        type: integer
+    type: object
+  class.ClassInfo:
+    properties:
+      class_id:
+        type: integer
+      class_name:
+        type: string
+      teacher_id:
+        type: integer
+      teacher_name:
+        type: string
+    type: object
+  class.CreateClassRequest:
+    properties:
+      class_name:
+        type: string
+    required:
+    - class_name
+    type: object
+  class.CreateClassResp:
+    properties:
+      class_id:
+        type: integer
+      class_name:
+        type: string
+      invite_code:
+        type: string
+    type: object
+  class.GetClassInfoResp:
+    properties:
+      class_info:
+        $ref: '#/definitions/class.ClassInfo'
+    type: object
+  class.GetClassStudentsResp:
+    properties:
+      students:
+        items:
+          $ref: '#/definitions/class.Student'
+        type: array
+    type: object
+  class.GetMyCreatedClassesResp:
+    properties:
+      class_list:
+        items:
+          $ref: '#/definitions/class.ClassInfo'
+        type: array
+    type: object
+  class.GetMyJoinedClassesResp:
+    properties:
+      class_list:
+        items:
+          $ref: '#/definitions/class.ClassInfo'
+        type: array
+    type: object
+  class.JoinClassRequest:
+    properties:
+      invite_code:
+        type: string
+    required:
+    - invite_code
+    type: object
+  class.Student:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  http.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  question.AnswerQuestionReq:
+    properties:
+      studentanswers:
+        items:
+          $ref: '#/definitions/question.StudentAnswer'
+        type: array
+      video_id:
+        type: integer
+    type: object
+  question.AnswerQuestionResp:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/question.Result'
+        type: array
+    type: object
+  question.GenerateVideoExerciseResp:
+    properties:
+      questions:
+        items:
+          $ref: '#/definitions/question.Question'
+        type: array
+    type: object
+  question.KnowledgePoint:
+    properties:
+      knowledge_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  question.Question:
+    properties:
+      analysis:
+        type: string
+      answer:
+        type: string
+      content:
+        type: string
+      id:
+        type: integer
+      knowledge_points:
+        items:
+          $ref: '#/definitions/question.KnowledgePoint'
+        type: array
+      options:
+        type: string
+      segment_id:
+        type: integer
+      type:
+        type: string
+    type: object
+  question.Result:
+    properties:
+      analysis:
+        type: string
+      answer:
+        type: string
+      is_correct:
+        type: boolean
+      question_id:
+        type: integer
+    type: object
+  question.StudentAnswer:
+    properties:
+      answer:
+        type: string
+      question_id:
+        type: integer
+      time_cost:
+        type: integer
+    type: object
+  statistic.AverageKnowledgePoint:
+    properties:
+      average_master_score:
+        type: number
+      knowledge_id:
+        type: integer
+      title:
+        type: string
+      weak_rate:
+        description: 低于平均掌握程度分数的比例
+        type: number
+    type: object
+  statistic.GetClassStatReq:
+    properties:
+      class_id:
+        type: integer
+      video_id:
+        type: integer
+    type: object
+  statistic.GetClassStatResp:
+    properties:
+      overview:
+        $ref: '#/definitions/statistic.Overview'
+      top_pause_action:
+        items:
+          $ref: '#/definitions/statistic.PauseAction'
+        type: array
+      top_questions:
+        items:
+          $ref: '#/definitions/statistic.QuestionStat'
+        type: array
+      top_replay_action:
+        items:
+          $ref: '#/definitions/statistic.ReplayAction'
+        type: array
+      weak_knowledge_point:
+        items:
+          $ref: '#/definitions/statistic.AverageKnowledgePoint'
+        type: array
+    type: object
+  statistic.GetStudentStatResp:
+    properties:
+      correct_rate:
+        description: 题目正确率
+        type: number
+      knowledge_points:
+        description: 薄弱知识点（薄弱知识点得分，要提前确定一个阈值）
+        items:
+          $ref: '#/definitions/statistic.KnowledgePoint'
+        type: array
+      pause_count:
+        description: 暂停总时长
+        type: integer
+      status:
+        description: 任务完成情况：finished | in_progress | todo | expired
+        type: string
+      time_cost:
+        description: 视频观看时长
+        type: integer
+    type: object
+  statistic.KnowledgePoint:
+    properties:
+      knowledge_id:
+        type: integer
+      master_score:
+        type: number
+      title:
+        type: string
+    type: object
+  statistic.Overview:
+    properties:
+      average_correct_rate:
+        description: 平均答题正确率
+        type: number
+      average_time_cost:
+        description: 平均观看时长
+        type: integer
+      complete_rate:
+        description: 任务完成率
+        type: number
+      total_pause_count:
+        description: 总暂停时长
+        type: integer
+    type: object
+  statistic.PauseAction:
+    properties:
+      end:
+        type: integer
+      pause_count:
+        type: integer
+      segment_id:
+        type: integer
+      start:
+        type: integer
+    type: object
+  statistic.QuestionStat:
+    properties:
+      content:
+        type: string
+      error_rate:
+        type: number
+      question_id:
+        type: integer
+    type: object
+  statistic.ReplayAction:
+    properties:
+      end:
+        type: integer
+      replay_count:
+        type: integer
+      segment_id:
+        type: integer
+      start:
+        type: integer
+    type: object
   user.LoginByPassword:
     properties:
       email:
@@ -11,6 +316,11 @@ definitions:
       email:
         type: string
       verify_code:
+        type: string
+    type: object
+  user.LoginResp:
+    properties:
+      token:
         type: string
     type: object
   user.RegisterRequest:
@@ -26,14 +336,591 @@ definitions:
       username:
         type: string
     type: object
+  user.RegisterResp:
+    properties:
+      token:
+        type: string
+    type: object
   user.SendCodeRequest:
     properties:
       email:
         type: string
     type: object
+  video.GetClassVideosResp:
+    properties:
+      video_tasks:
+        items:
+          $ref: '#/definitions/video.VideoTask'
+        type: array
+    type: object
+  video.GetVideoDetailResp:
+    properties:
+      questions:
+        items:
+          $ref: '#/definitions/question.Question'
+        type: array
+      segments:
+        items:
+          $ref: '#/definitions/video.Segment'
+        type: array
+    type: object
+  video.PostVideoToClassReq:
+    properties:
+      class_list:
+        items:
+          type: integer
+        type: array
+      video_id:
+        type: integer
+    type: object
+  video.Segment:
+    properties:
+      end:
+        type: integer
+      id:
+        type: integer
+      start:
+        type: integer
+    type: object
+  video.UploadVideoResp:
+    properties:
+      duration:
+        type: integer
+      title:
+        type: string
+      url:
+        type: string
+      video_id:
+        type: integer
+    type: object
+  video.VideoTask:
+    properties:
+      created_at:
+        type: string
+      deadline:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      video_id:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
+  /api/v1/behavior/class-progress/{class_id}:
+    get:
+      description: 获取学生在某个班级下的所有视频学习情况
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 班级ID
+        in: path
+        name: class_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/behavior.GetClassVideoProgressResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取班级内所有视频的观看进度
+      tags:
+      - behavior
+  /api/v1/behavior/record:
+    post:
+      consumes:
+      - application/json
+      description: 记录暂停、回放、播放等行为及时长
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 行为上报参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/behavior.RecordActionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 记录学生视频观看行为
+      tags:
+      - behavior
+  /api/v1/behavior/update-progress:
+    post:
+      consumes:
+      - application/json
+      description: 上报当前播放秒数，更新最大进度与完成状态
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 进度参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/behavior.UpdateProgressReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 更新学生视频观看进度
+      tags:
+      - behavior
+  /api/v1/class/create:
+    post:
+      consumes:
+      - application/json
+      description: 教师创建班级，返回班级信息和邀请码
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 创建班级参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/class.CreateClassRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.CreateClassResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 教师创建班级
+      tags:
+      - class
+  /api/v1/class/info/{class_id}:
+    get:
+      description: 获取班级基本信息，单参数使用 path
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 班级ID
+        in: path
+        name: class_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetClassInfoResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取班级详情
+      tags:
+      - class
+  /api/v1/class/join:
+    post:
+      consumes:
+      - application/json
+      description: 学生使用邀请码加入班级
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 邀请码
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/class.JoinClassRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 学生加入班级
+      tags:
+      - class
+  /api/v1/class/my-created:
+    get:
+      description: 获取当前老师创建的所有班级
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetMyCreatedClassesResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取教师创建的班级列表
+      tags:
+      - class
+  /api/v1/class/my-joined:
+    get:
+      description: 获取当前学生加入的所有班级
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetMyJoinedClassesResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取学生加入的班级列表
+      tags:
+      - class
+  /api/v1/class/quit/{class_id}:
+    post:
+      description: 学生退出指定班级，单参数使用 path
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 班级ID
+        in: path
+        name: class_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 学生退出班级
+      tags:
+      - class
+  /api/v1/class/students/{class_id}:
+    get:
+      description: 获取指定班级的所有学生，单参数使用 path
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 班级ID
+        in: path
+        name: class_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/class.GetClassStudentsResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取班级内学生列表
+      tags:
+      - class
+  /api/v1/question/answer:
+    post:
+      consumes:
+      - application/json
+      description: 学生提交单个视频/片段内的题目答案，系统自动批改并返回结果
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 学生答题参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/question.AnswerQuestionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/question.AnswerQuestionResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 学生批量提交答题答案
+      tags:
+      - question
+  /api/v1/question/generate/{video_id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据视频ID自动生成课后练习题，供教师确认后发布
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频ID参数
+        in: path
+        name: video_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/question.GenerateVideoExerciseResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: AI生成视频课后习题
+      tags:
+      - question
+  /api/v1/stat/class:
+    get:
+      description: 获取班级在某个视频下的整体数据：正确率、完成率、薄弱知识点、高频暂停/回放片段
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 获取班级情况参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/statistic.GetClassStatReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/statistic.GetClassStatResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取班级整体学情统计
+      tags:
+      - statistic
+  /api/v1/stat/student/{video_id}:
+    get:
+      description: 获取学生单个视频的答题正确率、观看时长、暂停次数、薄弱知识点
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频ID
+        in: path
+        name: video_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/statistic.GetStudentStatResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取学生个人学情统计
+      tags:
+      - statistic
   /api/v1/user/getUser/{id}:
     get:
       consumes:
@@ -65,7 +952,16 @@ paths:
           $ref: '#/definitions/user.LoginByVerifyCode'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.LoginResp'
+              type: object
       summary: 用户验证码登录
       tags:
       - user
@@ -82,7 +978,16 @@ paths:
           $ref: '#/definitions/user.LoginByPassword'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.LoginResp'
+              type: object
       summary: 用户密码登录
       tags:
       - user
@@ -99,7 +1004,16 @@ paths:
           $ref: '#/definitions/user.RegisterRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.RegisterResp'
+              type: object
       summary: 用户注册
       tags:
       - user
@@ -120,4 +1034,147 @@ paths:
       summary: 发送验证码
       tags:
       - user
+  /api/v1/video/getDetail/{video_id}:
+    get:
+      description: 获取视频详情、分段、视频内题目、课后习题
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频id
+        in: path
+        name: video_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/video.GetVideoDetailResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取视频详情（分段+题目）
+      tags:
+      - video
+  /api/v1/video/getTasks/{class_id}:
+    get:
+      description: 学生获取所在班级的所有视频任务
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 班级id
+        in: path
+        name: class_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/video.GetClassVideosResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取班级视频任务列表
+      tags:
+      - video
+  /api/v1/video/post-to-class:
+    post:
+      description: 老师将视频作为任务下发给多个班级
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.PostVideoToClassReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 下发视频任务到班级
+      tags:
+      - video
+  /api/v1/video/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 教师上传教学视频，支持 mp4 格式，form-data 提交
+      parameters:
+      - default: Bearer
+        description: Bearer 认证令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频标题
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: 视频文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/video.UploadVideoResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/http.Response'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 上传视频文件
+      tags:
+      - video
 swagger: "2.0"
