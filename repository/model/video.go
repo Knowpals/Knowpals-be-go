@@ -1,18 +1,15 @@
 package model
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
 type Video struct {
 	gorm.Model
-	Title     string    `gorm:"column:title;type:varchar(100);not null"`
-	Url       string    `gorm:"column:url;type:varchar(100);not null"`
-	TeacherID uint      `gorm:"column:teacher_id;type:bigint;not null"`
-	Duration  int       `gorm:"column:duration;not null"`
-	Deadline  time.Time `gorm:"column:deadline;not null"`
+	Title     string `gorm:"column:title;type:varchar(100);not null"`
+	FileKey   string `gorm:"column:file_key;type:varchar(100);not null"`
+	TeacherID uint   `gorm:"column:teacher_id;type:bigint;not null"`
+	Duration  int    `gorm:"column:duration;not null"`
 }
 
 func (Video) TableName() string {
@@ -33,9 +30,11 @@ func (VideoToClass) TableName() string {
 // Segment 视频分段
 type Segment struct {
 	gorm.Model
-	VideoID uint `gorm:"column:video_id;type:bigint;not null;index"`
-	Start   int  `gorm:"column:start;type:int;not null"`
-	End     int  `gorm:"column:end;type:int;not null"`
+	SegmentID string `gorm:"type:varchar(64);uniqueIndex"`
+	VideoID   uint   `gorm:"column:video_id;type:bigint;not null;index"`
+	Start     int    `gorm:"column:start;type:int;not null"`
+	End       int    `gorm:"column:end;type:int;not null"`
+	Text      string `gorm:"column:text;type:text"`
 }
 
 func (Segment) TableName() string {

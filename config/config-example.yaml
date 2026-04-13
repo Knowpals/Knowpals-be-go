@@ -24,6 +24,16 @@ smtp:
   server: "smtp.qq.com"
   addr: "your_addr"
 
+cos:
+  secret_id: "SECRETID"
+  secret_key: "SECRETKEY"
+  url: "https://examplebucket-1250000000.cos.COS_REGION.myqcloud.com"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+  consumerGroup: "pipeline-worker-group"
+
 otel:
   enabled: true
   serviceName: "knowpals-be-go"

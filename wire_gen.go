@@ -10,14 +10,21 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/config"
 	class2 "github.com/Knowpals/Knowpals-be-go/controller/class"
 	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
+	video2 "github.com/Knowpals/Knowpals-be-go/controller/video"
+	"github.com/Knowpals/Knowpals-be-go/events"
+	"github.com/Knowpals/Knowpals-be-go/events/consumer"
+	"github.com/Knowpals/Knowpals-be-go/events/producer"
+	"github.com/Knowpals/Knowpals-be-go/infra/cos"
 	"github.com/Knowpals/Knowpals-be-go/infra/email"
 	"github.com/Knowpals/Knowpals-be-go/ioc"
 	"github.com/Knowpals/Knowpals-be-go/middleware"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
-	class3 "github.com/Knowpals/Knowpals-be-go/service/class"
+	"github.com/Knowpals/Knowpals-be-go/service/class"
+	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
 	"github.com/Knowpals/Knowpals-be-go/service/user"
+	"github.com/Knowpals/Knowpals-be-go/service/video"
 	"github.com/Knowpals/Knowpals-be-go/web"
 )
 
@@ -27,18 +34,32 @@ func InitApp(conf *config.Config) *App {
 	jwtHandler := ijwt.NewJwtHandler(conf)
 	db := ioc.InitDB(conf)
 	userDao := dao.NewUserDao(db)
-	classDao := dao.NewClassDao(db)
 	client := ioc.InitRedis(conf)
 	emailClient := email.NewEmailClient(client, conf)
 	authCache := cache.NewAuthCache(client)
 	userService := user.NewUserService(userDao, emailClient, authCache)
-	classService := class3.NewClassService(classDao)
 	userController := user2.NewUserController(jwtHandler, userService)
+	classDao := dao.NewClassDao(db)
+	classService := class.NewClassService(classDao)
 	classController := class2.NewClassController(classService, userService)
-	authMiddleware := middleware.NewAuthMiddleware(jwtHandler)
+	cosClient := ioc.InitCOS(conf)
+	cosCOSClient := cos.NewCOSClient(cosClient)
+	videoDao := dao.NewVideoDao(db)
+	videoService := video.NewVideoService(videoDao)
+	pipelineDao := dao.NewPipelineDao(db)
+	knowledgeDao := dao.NewKnowledgeDao(db)
+	segmentDao := dao.NewSegmentDao(db)
+	saramaClient := ioc.InitKafka(conf)
+	producerProducer := producer.NewSaramaProducer(saramaClient)
 	logger := ioc.InitZapLogger(conf)
+	pipelineService := pipeline.NewPipelineService(pipelineDao, videoDao, knowledgeDao, segmentDao, producerProducer, cosCOSClient, logger)
+	videoController := video2.NewVideoController(cosCOSClient, videoService, pipelineService)
+	authMiddleware := middleware.NewAuthMiddleware(jwtHandler)
 	loggerMiddleware := middleware.NewLoggerMiddleware(logger)
-	engine := web.NewGinEngine(userController, classController, authMiddleware, loggerMiddleware)
-	app := NewApp(engine)
+	engine := web.NewGinEngine(userController, classController, videoController, authMiddleware, loggerMiddleware)
+	pipelineWorker := events.NewPipelineWorker(pipelineService)
+	string2 := ioc.InitKafkaConsumerGroupID(conf)
+	consumerConsumer := consumer.NewSaramaConsumer(saramaClient, string2)
+	app := NewApp(engine, pipelineWorker, consumerConsumer)
 	return app
 }

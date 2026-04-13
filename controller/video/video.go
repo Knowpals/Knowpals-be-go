@@ -1,16 +1,23 @@
 package video
 
 import (
+	errors1 "errors"
 	"mime/multipart"
 
 	"github.com/Knowpals/Knowpals-be-go/api/http"
 	"github.com/Knowpals/Knowpals-be-go/api/http/video"
+	"github.com/Knowpals/Knowpals-be-go/domain"
+	"github.com/Knowpals/Knowpals-be-go/errors"
+	"github.com/Knowpals/Knowpals-be-go/infra/cos"
+	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
+	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
+	video2 "github.com/Knowpals/Knowpals-be-go/service/video"
 	"github.com/gin-gonic/gin"
 )
 
 type VideoController interface {
 	// UploadVideo 老师上传视频
-	UploadVideo(c *gin.Context, req video.UploadVideoReq, file multipart.File, fileHeader *multipart.FileHeader) (http.Response, error)
+	UploadVideo(c *gin.Context, req video.UploadVideoReq, file multipart.File, fileHeader *multipart.FileHeader, claim ijwt.UserClaim) (http.Response, error)
 	// GetVideoDetail 获取视频任务详情
 	GetVideoDetail(c *gin.Context, req video.GetVideoDetailReq) (http.Response, error)
 	// PostVideoToClass 给指定班级发送视频任务
@@ -20,6 +27,17 @@ type VideoController interface {
 }
 
 type videoController struct {
+	cos *cos.COSClient
+	vs  video2.VideoService
+	ps  pipeline.PipelineService
+}
+
+func NewVideoController(cos *cos.COSClient, vs video2.VideoService, ps pipeline.PipelineService) VideoController {
+	return &videoController{
+		cos: cos,
+		vs:  vs,
+		ps:  ps,
+	}
 }
 
 // UploadVideo 老师上传视频
@@ -35,8 +53,38 @@ type videoController struct {
 // @Failure 400 {object} http.Response "参数错误"
 // @Failure 500 {object} http.Response "服务器错误"
 // @Router /api/v1/video/upload [post]
-func (vc *videoController) UploadVideo(c *gin.Context, req video.UploadVideoReq, file multipart.File, fileHeader *multipart.FileHeader) (http.Response, error) {
-	return http.Response{}, nil
+func (vc *videoController) UploadVideo(c *gin.Context, req video.UploadVideoReq, file multipart.File, fileHeader *multipart.FileHeader, claim ijwt.UserClaim) (http.Response, error) {
+	//先判断是否是老师身份
+	if domain.RoleType(claim.Role) != domain.Role_Teacher {
+		return http.Response{}, errors.UploadVideoError(errors1.New("无上传视频权限"))
+	}
+	key, err := vc.cos.UploadFile(c, file, fileHeader)
+	if err != nil {
+		return http.Response{}, errors.UploadVideoError(err)
+	}
+
+	videoID, err := vc.vs.SaveVideo(c, domain.Video{Title: req.Title, TeacherID: claim.ID, FileKey: key})
+	if err != nil {
+		return http.Response{}, errors.UploadVideoError(err)
+	}
+
+	jobID, err := vc.ps.CreateJob(c, videoID)
+	if err != nil {
+		return http.Response{}, errors.UploadVideoError(err)
+	}
+
+	url, err := vc.cos.SignUrl(c, key)
+	if err != nil {
+		return http.Response{}, errors.UploadVideoError(err)
+	}
+
+	resp := video.UploadVideoResp{
+		VideoID: videoID,
+		JobID:   jobID,
+		Title:   req.Title,
+		URL:     url,
+	}
+	return http.Success(resp), nil
 }
 
 // GetVideoDetail 获取视频任务详情

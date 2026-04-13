@@ -1,14 +1,15 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: mysql-knowpals
+    container_name: mysql
     restart: always
     ports:
-      - "3308:3306"
+      - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_ROOT_HOST: "%"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
     command:
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
@@ -16,51 +17,50 @@ services:
 
   redis:
     image: redis:latest
-    container_name: redis-knowpals
+    container_name: redis
     ports:
-      - "6380:6379"
-    command: redis-server --requirepass 12345678  # 设置密码
+      - "6379:6379"
+    command: redis-server --requirepass 12345678
     restart: always
     volumes:
-      - redis_data:/data
+      - redis-data:/data
 
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    command: [ "--config=/etc/otel-collector-config.yaml" ]
-    volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "8889:8889"   # metrics给Prometheus抓
-
-  prometheus:
-    image: prom/prometheus:v3.5.0
-    volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-
-  tempo:
-    image: grafana/tempo:2.8.1
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    volumes:
-      - ./tempo.yaml:/etc/tempo.yaml
-    ports:
-      - "3200:3200"
-
-  grafana:
-    image: grafana/grafana:12.1.0
+      - "9092:9092"
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      KAFKA_NODE_ID: 1
+
+      # KRaft模式
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # controller配置
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # listeners
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://101.35.247.221:9092
+
+      # listener mapping
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # 单节点必须
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # KRaft存储ID（必须）
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
     volumes:
-      - ./grafana-datasources-prometheus.yaml:/etc/grafana/provisioning/datasources/prometheus.yaml
-      - ./grafana-datasources-tempo.yaml:/etc/grafana/provisioning/datasources/tempo.yaml
-    ports:
-      - "3000:3000"
+      - kafka-data:/var/lib/kafka/data
 
 volumes:
-  mysql_data:
-  redis_data:
+  mysql-data:
+  redis-data:
+  kafka-data:

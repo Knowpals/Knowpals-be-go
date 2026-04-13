@@ -12,6 +12,7 @@ type UploadVideoReq struct {
 
 type UploadVideoResp struct {
 	VideoID  uint   `json:"video_id"`
+	JobID    string `json:"job_id"`
 	Title    string `json:"title"`
 	URL      string `json:"url"`
 	Duration int    `json:"duration"`

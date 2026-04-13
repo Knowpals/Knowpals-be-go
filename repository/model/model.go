@@ -17,6 +17,8 @@ func InitTable(db *gorm.DB) error {
 		&Video{},
 		&VideoToClass{},
 		&Segment{},
+		&PipelineJob{},
+		&PipelineJobStage{},
 	)
 
 }

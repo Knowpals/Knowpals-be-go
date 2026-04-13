@@ -229,6 +229,7 @@ func WrapFormDataAndClaim[Req any](fn func(*gin.Context, Req, multipart.File, *m
 			})
 			return
 		}
+
 		var req Req
 		if err := c.ShouldBind(&req); err != nil {
 			c.JSON(http.StatusBadRequest, http2.Response{

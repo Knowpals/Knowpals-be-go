@@ -1,25 +1,39 @@
 package main
 
 import (
+	"context"
+
 	"github.com/Knowpals/Knowpals-be-go/config"
+	"github.com/Knowpals/Knowpals-be-go/events"
+	"github.com/Knowpals/Knowpals-be-go/events/consumer"
+	"github.com/Knowpals/Knowpals-be-go/events/topic"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
-var Config config.Config
+var Config *config.Config
 
 type App struct {
-	r *gin.Engine
+	r      *gin.Engine
+	worker *events.PipelineWorker
+	c      consumer.Consumer
 }
 
-func NewApp(r *gin.Engine) *App {
+func NewApp(r *gin.Engine, worker *events.PipelineWorker, c consumer.Consumer) *App {
 	return &App{
-		r: r,
+		r:      r,
+		worker: worker,
+		c:      c,
 	}
 }
 
 func (a *App) Run() {
+	if a.worker != nil && a.c != nil {
+		go func() {
+			_ = a.worker.Run(context.Background(), a.c, []string{topic.RESULT_TOPIC})
+		}()
+	}
 	a.r.Run()
 }
 
@@ -34,6 +48,7 @@ func initViper() {
 		panic(err)
 	}
 
+	Config = &config.Config{}
 	err = viper.Unmarshal(&Config)
 	if err != nil {
 		panic(err)
@@ -44,15 +59,6 @@ func initViper() {
 func main() {
 	initViper()
 
-	//shutdown := ioc.InitOtel(&Config)
-	//defer func() {
-	//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	//	defer cancel()
-	//	if err := shutdown(ctx); err != nil {
-	//		panic(err)
-	//	}
-	//}()
-
-	app := InitApp(&Config)
+	app := InitApp(Config)
 	app.Run()
 }

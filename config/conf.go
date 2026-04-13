@@ -7,6 +7,8 @@ type Config struct {
 	Otel  *OtelConf  `yaml:"otel"`
 	Redis *RedisConf `yaml:"redis"`
 	Smtp  *SmtpConf  `yaml:"smtp"`
+	COS   *COSConf   `yaml:"cos"`
+	Kafka *KafkaConf `yaml:"kafka"`
 }
 
 type MysqlConf struct {
@@ -38,6 +40,17 @@ type SmtpConf struct {
 	Secret string `yaml:"secret"`
 	Server string `yaml:"server"`
 	Addr   string `yaml:"addr"`
+}
+
+type COSConf struct {
+	SecretID  string `yaml:"secretID"`
+	SecretKey string `yaml:"secretKey"`
+	URL       string `yaml:"url"`
+}
+
+type KafkaConf struct {
+	Addrs         []string `yaml:"addrs"`
+	ConsumerGroup string   `yaml:"consumerGroup"`
 }
 
 type OtelConf struct {

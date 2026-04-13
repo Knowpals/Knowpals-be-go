@@ -4,9 +4,10 @@ import "gorm.io/gorm"
 
 type KnowledgePoint struct {
 	gorm.Model
-	VideoID uint   `gorm:"column:video_id;type:bigint;not null;index"`
-	Title   string `gorm:"column:title;type:varchar(128);not null;index"`
-	Content string `gorm:"column:content;type:text;not null;index:,class:FULLTEXT"`
+	KnowledgeID string `gorm:"type:varchar(64);uniqueIndex"`
+	VideoID     uint   `gorm:"column:video_id;type:bigint;not null;index"`
+	Title       string `gorm:"column:title;type:varchar(128);not null;index"`
+	Content     string `gorm:"column:content;type:text;not null;index:,class:FULLTEXT"`
 }
 
 func (KnowledgePoint) TableName() string {
