@@ -5,7 +5,7 @@ import "gorm.io/gorm"
 type Question struct {
 	gorm.Model
 	VideoID   uint    `gorm:"column:video_id;type:bigint;not null;index"`
-	SegmentID *uint   `gorm:"column:video_id;type:bigint;index"` //如果为空就是整体题，非空就是分段题
+	SegmentID *uint   `gorm:"column:segment_id;type:bigint;index"` //为空为整视频题，非空为分段题
 	Type      string  `gorm:"column:type;type:enum('choice','fill','judge');not null"`
 	Content   string  `gorm:"column:content;type:text;not null"`
 	Options   *string `gorm:"column:options;type:text"`

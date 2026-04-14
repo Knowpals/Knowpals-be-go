@@ -43,11 +43,15 @@ type Segment struct {
 }
 
 type QuizPayload struct {
+	Quizzes []Quiz `json:"quizzes"`
+}
+type Quiz struct {
 	Type       string   `json:"type"`
 	Question   string   `json:"question"`
 	Options    []string `json:"options"`
 	Answer     string   `json:"answer"`
 	Analysis   string   `json:"analysis"`
 	Difficulty string   `json:"difficulty"`
-	ConceptID  string   `json:"concept_id"`
+	ConceptIDs []string `json:"concept_ids"`
+	SegmentID  *string  `json:"segment_id"`
 }

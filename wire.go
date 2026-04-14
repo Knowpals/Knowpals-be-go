@@ -56,6 +56,7 @@ func InitApp(conf *config.Config) *App {
 		dao.NewPipelineDao,
 		dao.NewKnowledgeDao,
 		dao.NewSegmentDao,
+		dao.NewQuestionDao,
 		cache.NewAuthCache,
 		producer.NewSaramaProducer,
 		consumer.NewSaramaConsumer,

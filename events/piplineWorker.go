@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/IBM/sarama"
@@ -24,10 +25,14 @@ type pipelineHandler struct {
 	svc pipeline.PipelineService
 }
 
-func (pipelineHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
+func (pipelineHandler) Setup(_ sarama.ConsumerGroupSession) error {
+	fmt.Println("kafka 成功建立")
+	return nil
+}
 func (pipelineHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 
 func (h pipelineHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	fmt.Println("start consuming topic:", claim.Topic())
 	for {
 		select {
 		case msg, ok := <-claim.Messages():

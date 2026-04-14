@@ -33,6 +33,7 @@ type pipelineService struct {
 	videoDao     dao.VideoDao
 	knowledgeDao dao.KnowledgeDao
 	segmentDao   dao.SegmentDao
+	questionDao  dao.QuestionDao
 	producer     producer.Producer
 	cos          *cos.COSClient
 	log          *zap.Logger
@@ -43,6 +44,7 @@ func NewPipelineService(
 	vdao dao.VideoDao,
 	kdao dao.KnowledgeDao,
 	sdao dao.SegmentDao,
+	qdao dao.QuestionDao,
 	prod producer.Producer,
 	cos *cos.COSClient,
 	log *zap.Logger,
@@ -52,6 +54,7 @@ func NewPipelineService(
 		videoDao:     vdao,
 		knowledgeDao: kdao,
 		segmentDao:   sdao,
+		questionDao:  qdao,
 		producer:     prod,
 		cos:          cos,
 		log:          log,
@@ -72,6 +75,7 @@ func (s *pipelineService) CreateJob(ctx context.Context, videoID uint) (string, 
 	}
 	//创建任务
 	if err := s.pipelineDao.CreateJob(ctx, job); err != nil {
+		s.log.Error(fmt.Sprintf("创建job失败：%v", err))
 		return "", errors.CreateJobError(err)
 	}
 
@@ -235,10 +239,13 @@ func (s *pipelineService) runKnowledgeStage(ctx context.Context, msg *message.Re
 	}
 
 	next := message.TaskMessage{
-		JobID:   msg.JobID,
-		Stage:   message.StageQuiz,
-		Payload: map[string]interface{}{"video_id": videoID},
-		Retry:   0,
+		JobID: msg.JobID,
+		Stage: message.StageQuiz,
+		Payload: map[string]interface{}{
+			"segments": result.Segments,
+			"concepts": result.Concepts,
+		},
+		Retry: 0,
 	}
 	if s.producer != nil {
 		err := s.producer.SendTask(topic.TASK_TOPIC, next)
@@ -252,30 +259,116 @@ func (s *pipelineService) runKnowledgeStage(ctx context.Context, msg *message.Re
 
 func (s *pipelineService) runQuizStage(ctx context.Context, msg *message.ResultMessage) error {
 
-	s.log.Info(fmt.Sprintf("[jobID:%s] 进入 quiz stage"))
+	s.log.Info(fmt.Sprintf("[jobID:%s] 进入 quiz stage", msg.JobID))
 
 	if msg.Status == "failed" || msg.Error != "" {
 		_ = s.failJob(ctx, msg.JobID, message.StageQuiz, msg.Error)
-		return errors.RunQuizStageError(fmt.Errorf(msg.Error))
+		return errors.RunQuizStageError(fmt.Errorf("%s", msg.Error))
 	}
 	if err := s.ensureStage(ctx, msg.JobID, message.StageQuiz); err != nil {
-		_ = s.failJob(ctx, msg.JobID, message.StageQuiz, msg.Error)
+		_ = s.failJob(ctx, msg.JobID, message.StageQuiz, err.Error())
 		return errors.RunQuizStageError(err)
 	}
 
+	job, err := s.pipelineDao.GetJob(ctx, msg.JobID)
+	if err != nil {
+		_ = s.failJob(ctx, msg.JobID, message.StageQuiz, err.Error())
+		return errors.RunQuizStageError(err)
+	}
+	videoID := job.VideoID
+
+	var payload message.QuizPayload
+	if err := tool.MapToStruct(msg.Result, &payload); err != nil {
+		_ = s.failJob(ctx, msg.JobID, message.StageQuiz, err.Error())
+		return errors.RunQuizStageError(err)
+	}
+
+	quizzes := payload.Quizzes
+	conceptIDs := make([]string, 0, len(quizzes))
+	var segmentIDs []string
+	for _, q := range quizzes {
+		for _, cid := range q.ConceptIDs {
+			if cid == "" {
+				continue
+			}
+			conceptIDs = append(conceptIDs, cid)
+		}
+		if q.SegmentID != nil {
+			segmentIDs = append(segmentIDs, *q.SegmentID)
+		}
+	}
+
+	kpByStr := make(map[string]domain.KnowledgePoint)
+	if len(conceptIDs) > 0 && s.knowledgeDao != nil {
+		m, err := s.knowledgeDao.FindKnowledgePointsByKnowledgeIDs(ctx, conceptIDs)
+		if err != nil {
+			_ = s.failJob(ctx, msg.JobID, message.StageQuiz, err.Error())
+			return errors.RunQuizStageError(err)
+		}
+		kpByStr = m
+	}
+
+	segMap := make(map[string]domain.Segment)
+	if len(segmentIDs) > 0 {
+		m, err := s.segmentDao.BatchGetSegmentBySegmentID(ctx, segmentIDs)
+		if err != nil {
+			_ = s.failJob(ctx, msg.JobID, message.StageQuiz, err.Error())
+			return errors.RunQuizStageError(err)
+		}
+
+		segMap = m
+	}
+
+	items := make([]domain.QuizQuestion, 0, len(quizzes))
+	for _, q := range quizzes {
+		item := domain.QuizQuestion{
+			Type:     q.Type,
+			Content:  q.Question,
+			Options:  q.Options,
+			Answer:   q.Answer,
+			Analysis: q.Analysis,
+		}
+		if len(q.ConceptIDs) > 0 {
+			for _, cid := range q.ConceptIDs {
+				kp, ok := kpByStr[cid]
+				if !ok || kp.ID == 0 {
+					continue
+				}
+				item.KnowledgePKs = append(item.KnowledgePKs, kp.ID)
+			}
+		}
+
+		if q.SegmentID != nil && *q.SegmentID != "" {
+			seg, ok := segMap[*q.SegmentID]
+			if ok {
+				item.SegmentID = &seg.ID
+			}
+		}
+
+		items = append(items, item)
+	}
+
+	if s.questionDao != nil {
+		if err := s.questionDao.ReplaceQuestionsForVideo(ctx, videoID, items); err != nil {
+			_ = s.failJob(ctx, msg.JobID, message.StageQuiz, err.Error())
+			return errors.RunQuizStageError(err)
+		}
+	}
+
 	out, _ := json.Marshal(msg.Result)
+
 	if err := s.pipelineDao.UpdateStage(ctx, msg.JobID, message.StageQuiz, map[string]interface{}{
 		"status": "success",
 		"output": string(out),
 	}); err != nil {
-		s.log.Error(fmt.Sprintf("[jobID:%s stage:%s] update stage 失败：%v", msg.JobID, message.StageKnowledge, err))
+		s.log.Error(fmt.Sprintf("[jobID:%s stage:%s] update stage 失败：%v", msg.JobID, message.StageQuiz, err))
 		return errors.RunQuizStageError(err)
 	}
 	if err := s.pipelineDao.UpdateJob(ctx, msg.JobID, map[string]interface{}{
 		"status":        "success",
 		"current_stage": stageQuizNum,
 	}); err != nil {
-		s.log.Error(fmt.Sprintf("[jobID:%s stage:%s] update job 失败：%v", msg.JobID, message.StageKnowledge, err))
+		s.log.Error(fmt.Sprintf("[jobID:%s stage:%s] update job 失败：%v", msg.JobID, message.StageQuiz, err))
 		return errors.RunQuizStageError(err)
 	}
 

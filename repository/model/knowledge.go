@@ -14,11 +14,12 @@ func (KnowledgePoint) TableName() string {
 	return "knowledge_points"
 }
 
-// KnowledgeSegmentMapping 知识点和分段映射（可以导航）
+// KnowledgeSegmentMapping 知识点和分段映射
+// 注意：字段名不要用 SegmentID / KnowledgePointID 这类 GORM 默认关联命名，否则 Create 时可能被当成 BelongsTo 外键处理，写入 0。
 type KnowledgeSegmentMapping struct {
 	gorm.Model
-	KnowledgeID uint `gorm:"column:knowledge_id;type:bigint;not null;index"`
-	SegmentID   uint `gorm:"column:segment_id;type:bigint;not null;index"`
+	KnowledgePk uint `gorm:"column:knowledge_id;type:bigint;not null;index"`
+	SegmentPk   uint `gorm:"column:segment_id;type:bigint;not null;index"`
 }
 
 func (KnowledgeSegmentMapping) TableName() string {

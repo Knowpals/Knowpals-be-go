@@ -2,17 +2,18 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	"github.com/Knowpals/Knowpals-be-go/repository/model"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type SegmentDao interface {
 	BatchUpsertSegments(context.Context, []domain.Segment) error
 	UpsertKnowledgeSegmentMappings(context.Context, []domain.Segment) error
+	BatchGetSegmentBySegmentID(context.Context, []string) (map[string]domain.Segment, error)
 }
 
 type segmentDao struct {
@@ -30,32 +31,41 @@ func (sd *segmentDao) BatchUpsertSegments(ctx context.Context, segments []domain
 		return nil
 	}
 
-	records := make([]model.Segment, 0, len(segments))
-	for _, seg := range segments {
-		records = append(records, model.Segment{
-			SegmentID: seg.SegmentID,
-			VideoID:   seg.VideoID,
-			Start:     seg.Start,
-			End:       seg.End,
-			Text:      seg.Text,
-		})
-	}
-
-	return sd.db.WithContext(ctx).
-		Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "segment_id"},
-			},
-			OnConstraint: "idx_segment_id",
-			DoUpdates: clause.AssignmentColumns([]string{
-				"video_id",
-				"start",
-				"end",
-				"text",
-			}),
-		}).
-		CreateInBatches(&records, 200).
-		Error
+	// 不用 CreateInBatches+OnConflict：GORM 在部分 MySQL 驱动/版本下批量 upsert 可能只命中首条或错误合并为同一行。
+	return sd.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, seg := range segments {
+			if seg.SegmentID == "" {
+				return fmt.Errorf("segment_id is required")
+			}
+			var existing model.Segment
+			err := tx.Where("segment_id = ?", seg.SegmentID).Take(&existing).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				row := model.Segment{
+					SegmentID: seg.SegmentID,
+					VideoID:   seg.VideoID,
+					Start:     seg.Start,
+					End:       seg.End,
+					Text:      seg.Text,
+				}
+				if err := tx.Create(&row).Error; err != nil {
+					return err
+				}
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if err := tx.Model(&existing).Updates(map[string]interface{}{
+				"video_id": seg.VideoID,
+				"start":    seg.Start,
+				"end":      seg.End,
+				"text":     seg.Text,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (sd *segmentDao) UpsertKnowledgeSegmentMappings(ctx context.Context, segments []domain.Segment) error {
@@ -63,23 +73,31 @@ func (sd *segmentDao) UpsertKnowledgeSegmentMappings(ctx context.Context, segmen
 		return nil
 	}
 
-	segmentIDs := make([]string, 0, len(segments))
-	//这里用map去重，当作set使用
+	segmentIDSet := make(map[string]struct{}, len(segments))
 	knowledgeSet := make(map[string]struct{}, 64)
+	var pairs []domain.Segment
 	for _, seg := range segments {
-		if seg.SegmentID != "" {
-			segmentIDs = append(segmentIDs, seg.SegmentID)
+		if seg.SegmentID == "" {
+			continue
+		}
+		segmentIDSet[seg.SegmentID] = struct{}{}
+		if seg.KnowledgeID == "" {
+			continue
 		}
 		knowledgeSet[seg.KnowledgeID] = struct{}{}
+		pairs = append(pairs, seg)
 	}
 
+	segmentIDs := make([]string, 0, len(segmentIDSet))
+	for sid := range segmentIDSet {
+		segmentIDs = append(segmentIDs, sid)
+	}
 	knowledgeIDs := make([]string, 0, len(knowledgeSet))
 	for kid := range knowledgeSet {
 		knowledgeIDs = append(knowledgeIDs, kid)
 	}
 
 	return sd.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Resolve segments (string ID -> uint PK)
 		var segModels []model.Segment
 		if err := tx.Where("segment_id IN ?", segmentIDs).Find(&segModels).Error; err != nil {
 			return err
@@ -94,7 +112,6 @@ func (sd *segmentDao) UpsertKnowledgeSegmentMappings(ctx context.Context, segmen
 			return fmt.Errorf("no segments found for mapping")
 		}
 
-		// Resolve knowledge points (string ID -> uint PK)
 		var kpModels []model.KnowledgePoint
 		if len(knowledgeIDs) > 0 {
 			if err := tx.Where("knowledge_id IN ?", knowledgeIDs).Find(&kpModels).Error; err != nil {
@@ -106,25 +123,32 @@ func (sd *segmentDao) UpsertKnowledgeSegmentMappings(ctx context.Context, segmen
 			kpIDToPK[kp.KnowledgeID] = kp.ID
 		}
 
-		// Clear old mappings for these segments (idempotent replace)
 		if err := tx.Where("segment_id IN ?", segPKs).Delete(&model.KnowledgeSegmentMapping{}).Error; err != nil {
 			return err
 		}
 
-		// Insert new mappings
-		mappings := make([]model.KnowledgeSegmentMapping, 0, len(segments)*2)
-		for _, seg := range segments {
+		mappings := make([]model.KnowledgeSegmentMapping, 0, len(pairs))
+		seenPair := make(map[string]struct{}, len(pairs))
+		for _, seg := range pairs {
 			segPK, ok := segIDToPK[seg.SegmentID]
 			if !ok {
 				return fmt.Errorf("segment not found for segment_id=%s", seg.SegmentID)
 			}
 			kpPK, ok := kpIDToPK[seg.KnowledgeID]
 			if !ok {
-				return fmt.Errorf("segment not found for knowledge_id=%s", seg.KnowledgeID)
+				return fmt.Errorf("knowledge point not found for knowledge_id=%s", seg.KnowledgeID)
 			}
+			if segPK == 0 || kpPK == 0 {
+				return fmt.Errorf("invalid pk for mapping segment_id=%s knowledge_id=%s", seg.SegmentID, seg.KnowledgeID)
+			}
+			key := fmt.Sprintf("%d:%d", kpPK, segPK)
+			if _, dup := seenPair[key]; dup {
+				continue
+			}
+			seenPair[key] = struct{}{}
 			mappings = append(mappings, model.KnowledgeSegmentMapping{
-				KnowledgeID: kpPK,
-				SegmentID:   segPK,
+				KnowledgePk: kpPK,
+				SegmentPk:   segPK,
 			})
 		}
 
@@ -133,4 +157,30 @@ func (sd *segmentDao) UpsertKnowledgeSegmentMappings(ctx context.Context, segmen
 		}
 		return tx.CreateInBatches(&mappings, 500).Error
 	})
+}
+
+func (sd *segmentDao) BatchGetSegmentBySegmentID(ctx context.Context, segmentID []string) (map[string]domain.Segment, error) {
+	out := make(map[string]domain.Segment, len(segmentID))
+	if len(segmentID) == 0 {
+		return out, nil
+	}
+
+	var records []model.Segment
+	err := sd.db.WithContext(ctx).Where("segment_id IN ?", segmentID).Find(&records).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range records {
+		out[r.SegmentID] = domain.Segment{
+			ID:        r.ID,
+			SegmentID: r.SegmentID,
+			VideoID:   r.VideoID,
+			Start:     r.Start,
+			End:       r.End,
+			Text:      r.Text,
+		}
+	}
+
+	return out, nil
 }

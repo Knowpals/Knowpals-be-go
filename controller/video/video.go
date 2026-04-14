@@ -18,6 +18,7 @@ import (
 type VideoController interface {
 	// UploadVideo 老师上传视频
 	UploadVideo(c *gin.Context, req video.UploadVideoReq, file multipart.File, fileHeader *multipart.FileHeader, claim ijwt.UserClaim) (http.Response, error)
+	GetTaskUploadingProcess(c *gin.Context, req video.UploadVideoReq) (http.Response, error)
 	// GetVideoDetail 获取视频任务详情
 	GetVideoDetail(c *gin.Context, req video.GetVideoDetailReq) (http.Response, error)
 	// PostVideoToClass 给指定班级发送视频任务
@@ -85,6 +86,11 @@ func (vc *videoController) UploadVideo(c *gin.Context, req video.UploadVideoReq,
 		URL:     url,
 	}
 	return http.Success(resp), nil
+}
+
+func (vc *videoController) GetTaskUploadingProcess(c *gin.Context, req video.UploadVideoReq) (http.Response, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 // GetVideoDetail 获取视频任务详情
