@@ -6,7 +6,10 @@ package main
 
 import (
 	"github.com/Knowpals/Knowpals-be-go/config"
+	"github.com/Knowpals/Knowpals-be-go/controller/behavior"
 	classController "github.com/Knowpals/Knowpals-be-go/controller/class"
+	"github.com/Knowpals/Knowpals-be-go/controller/question"
+	"github.com/Knowpals/Knowpals-be-go/controller/statistic"
 	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
 	"github.com/Knowpals/Knowpals-be-go/controller/video"
 	"github.com/Knowpals/Knowpals-be-go/events"
@@ -20,7 +23,9 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
 	classService "github.com/Knowpals/Knowpals-be-go/service/class"
+	behaviorService "github.com/Knowpals/Knowpals-be-go/service/behavior"
 	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
+	statService "github.com/Knowpals/Knowpals-be-go/service/statistic"
 	"github.com/Knowpals/Knowpals-be-go/service/user"
 	video2 "github.com/Knowpals/Knowpals-be-go/service/video"
 	"github.com/Knowpals/Knowpals-be-go/web"
@@ -57,6 +62,8 @@ func InitApp(conf *config.Config) *App {
 		dao.NewKnowledgeDao,
 		dao.NewSegmentDao,
 		dao.NewQuestionDao,
+		dao.NewStatisticDao,
+		dao.NewBehaviorDao,
 		cache.NewAuthCache,
 		producer.NewSaramaProducer,
 		consumer.NewSaramaConsumer,
@@ -66,12 +73,17 @@ func InitApp(conf *config.Config) *App {
 		user.NewUserService,
 		classService.NewClassService,
 		video2.NewVideoService,
+		behaviorService.NewBehaviorService,
+		statService.NewStatService,
 		pipeline.NewPipelineService,
 
 		//controller
 		user2.NewUserController,
 		classController.NewClassController,
 		video.NewVideoController,
+		question.NewQuestionController,
+		behavior.NewBehaviorController,
+		statistic.NewStatController,
 
 		//web
 		web.NewGinEngine,

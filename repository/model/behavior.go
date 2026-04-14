@@ -10,6 +10,7 @@ type StudentVideoProgress struct {
 	UserID        uint   `gorm:"not null;uniqueIndex:idx_user_video;comment:学生ID"`
 	VideoID       uint   `gorm:"not null;uniqueIndex:idx_user_video;comment:视频ID"`
 	MaxSec        int    `gorm:"default:0;comment:最大观看秒数"`
+	LastSec       int    `gorm:"default:0;comment:上次上报秒数(用于累计观看时长)"`
 	Status        string `gorm:"type:enum('finished','in_progress','todo','expired');default 'todo';not null;comment:观看状态"`
 	WatchDuration int    `gorm:"default:0;comment:总观看时长(秒)"`
 }

@@ -26,6 +26,8 @@ const (
 type PipelineService interface {
 	CreateJob(ctx context.Context, videoID uint) (jobID string, err error)
 	ProcessResult(ctx context.Context, msg *message.ResultMessage) error
+	GetJob(ctx context.Context, jobID string) (*domain.PipelineJob, error)
+	ListStages(ctx context.Context, jobID string) ([]domain.PipelineJobStage, error)
 }
 
 type pipelineService struct {
@@ -130,6 +132,14 @@ func (s *pipelineService) ProcessResult(ctx context.Context, msg *message.Result
 	default:
 		return errors.ProcessTaskError(fmt.Errorf("unknown stage: %s", msg.Stage))
 	}
+}
+
+func (s *pipelineService) GetJob(ctx context.Context, jobID string) (*domain.PipelineJob, error) {
+	return s.pipelineDao.GetJob(ctx, jobID)
+}
+
+func (s *pipelineService) ListStages(ctx context.Context, jobID string) ([]domain.PipelineJobStage, error) {
+	return s.pipelineDao.ListStages(ctx, jobID)
 }
 
 func (s *pipelineService) runKnowledgeStage(ctx context.Context, msg *message.ResultMessage) error {
@@ -319,9 +329,9 @@ func (s *pipelineService) runQuizStage(ctx context.Context, msg *message.ResultM
 		segMap = m
 	}
 
-	items := make([]domain.QuizQuestion, 0, len(quizzes))
+	items := make([]domain.Question, 0, len(quizzes))
 	for _, q := range quizzes {
-		item := domain.QuizQuestion{
+		item := domain.Question{
 			Type:     q.Type,
 			Content:  q.Question,
 			Options:  q.Options,

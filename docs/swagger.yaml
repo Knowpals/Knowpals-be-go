@@ -165,7 +165,9 @@ definitions:
           $ref: '#/definitions/question.KnowledgePoint'
         type: array
       options:
-        type: string
+        items:
+          type: string
+        type: array
       segment_id:
         type: integer
       type:
@@ -355,8 +357,21 @@ definitions:
           $ref: '#/definitions/video.VideoTask'
         type: array
     type: object
+  video.GetTaskUploadingProcessReq:
+    properties:
+      jobID:
+        type: string
+    required:
+    - jobID
+    type: object
   video.GetVideoDetailResp:
     properties:
+      duration:
+        type: integer
+      knowledge:
+        items:
+          $ref: '#/definitions/video.KnowledgePointResp'
+        type: array
       questions:
         items:
           $ref: '#/definitions/question.Question'
@@ -365,6 +380,21 @@ definitions:
         items:
           $ref: '#/definitions/video.Segment'
         type: array
+      title:
+        type: string
+      video_id:
+        type: integer
+    type: object
+  video.KnowledgePointResp:
+    properties:
+      content:
+        type: string
+      id:
+        type: integer
+      knowledge_id:
+        type: string
+      title:
+        type: string
     type: object
   video.PostVideoToClassReq:
     properties:
@@ -381,13 +411,23 @@ definitions:
         type: integer
       id:
         type: integer
+      knowledge_id:
+        type: string
+      question:
+        $ref: '#/definitions/question.Question'
+      segment_id:
+        type: string
       start:
         type: integer
+      text:
+        type: string
     type: object
   video.UploadVideoResp:
     properties:
       duration:
         type: integer
+      job_id:
+        type: string
       title:
         type: string
       url:
@@ -1132,6 +1172,36 @@ paths:
           schema:
             $ref: '#/definitions/http.Response'
       summary: 下发视频任务到班级
+      tags:
+      - video
+  /api/v1/video/task/process:
+    post:
+      description: 获取视频任务发送进度
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.GetTaskUploadingProcessReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取视频任务发送进度
       tags:
       - video
   /api/v1/video/upload:

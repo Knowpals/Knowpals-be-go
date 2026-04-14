@@ -19,18 +19,32 @@ type UploadVideoResp struct {
 }
 
 type GetVideoDetailReq struct {
-	VideoID uint `json:"video_id" binding:"required"`
+	VideoID uint `uri:"video_id" binding:"required"`
 }
 
 type Segment struct {
-	ID    uint `json:"id"`
-	Start int  `json:"start"`
-	End   int  `json:"end"`
+	ID        uint              `json:"id"`
+	SegmentID string            `json:"segment_id"`
+	Start     int               `json:"start"`
+	End       int               `json:"end"`
+	Text      string            `json:"text"`
+	Question  question.Question `json:"question"`
 }
 
 type GetVideoDetailResp struct {
-	Segments  []Segment           `json:"segments"`
-	Questions []question.Question `json:"questions"`
+	VideoID   uint                 `json:"video_id"`
+	Title     string               `json:"title"`
+	Duration  int                  `json:"duration"`
+	Segments  []Segment            `json:"segments"`
+	Knowledge []KnowledgePointResp `json:"knowledge"`
+	Questions []question.Question  `json:"questions"`
+}
+
+type KnowledgePointResp struct {
+	ID          uint   `json:"id"`
+	KnowledgeID string `json:"knowledge_id"`
+	Title       string `json:"title"`
+	Content     string `json:"content"`
 }
 
 type PostVideoToClassReq struct {
@@ -39,7 +53,7 @@ type PostVideoToClassReq struct {
 }
 
 type GetClassVideosReq struct {
-	ClassID uint `json:"class_id"`
+	ClassID uint `uri:"class_id" binding:"required"`
 }
 
 type VideoTask struct {
@@ -47,9 +61,18 @@ type VideoTask struct {
 	Title     string    `json:"title"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
-	Deadline  time.Time `json:"deadline"`
 }
 
 type GetClassVideosResp struct {
 	VideoTasks []VideoTask `json:"video_tasks"`
+}
+
+type GetTaskUploadingProcessReq struct {
+	JobID string `uri:"job_id" binding:"required"`
+}
+
+type GetTaskUploadingProcessResp struct {
+	JobID  string `json:"job_id"`
+	Status string `json:"status"`
+	Stage  string `json:"stage"`
 }

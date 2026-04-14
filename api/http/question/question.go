@@ -13,7 +13,7 @@ type Question struct {
 	ID              uint             `json:"id"`
 	Type            string           `json:"type"`
 	Content         string           `json:"content"`
-	Options         string           `json:"options"`
+	Options         []string         `json:"options"`
 	Answer          string           `json:"answer"`
 	Analysis        string           `json:"analysis"`
 	SegmentID       *uint            `json:"segment_id"`

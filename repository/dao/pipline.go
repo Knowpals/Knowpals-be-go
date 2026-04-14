@@ -16,6 +16,7 @@ type PipelineDao interface {
 	CreateStage(ctx context.Context, stage *domain.PipelineJobStage) error
 	UpdateStage(ctx context.Context, jobID string, stage string, updates map[string]interface{}) error
 	CheckStage(ctx context.Context, jobID string, stage string) (int64, error)
+	ListStages(ctx context.Context, jobID string) ([]domain.PipelineJobStage, error)
 }
 
 type pipelineDao struct {
@@ -95,4 +96,26 @@ func (d *pipelineDao) CheckStage(ctx context.Context, jobID string, stage string
 	}
 
 	return n, nil
+}
+
+func (d *pipelineDao) ListStages(ctx context.Context, jobID string) ([]domain.PipelineJobStage, error) {
+	var stages []model.PipelineJobStage
+	if err := d.db.WithContext(ctx).
+		Where("job_id = ?", jobID).
+		Order("id asc").
+		Find(&stages).Error; err != nil {
+		return nil, err
+	}
+	out := make([]domain.PipelineJobStage, 0, len(stages))
+	for _, s := range stages {
+		out = append(out, domain.PipelineJobStage{
+			ID:         s.ID,
+			JobID:      s.JobID,
+			Stage:      s.Stage,
+			Status:     s.Status,
+			RetryCount: s.RetryCount,
+			Output:     s.Output,
+		})
+	}
+	return out, nil
 }

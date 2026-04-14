@@ -5,10 +5,12 @@ import (
 	"mime/multipart"
 
 	"github.com/Knowpals/Knowpals-be-go/api/http"
+	"github.com/Knowpals/Knowpals-be-go/api/http/question"
 	"github.com/Knowpals/Knowpals-be-go/api/http/video"
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	"github.com/Knowpals/Knowpals-be-go/errors"
 	"github.com/Knowpals/Knowpals-be-go/infra/cos"
+	"github.com/Knowpals/Knowpals-be-go/pkg/ginx"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
 	video2 "github.com/Knowpals/Knowpals-be-go/service/video"
@@ -18,7 +20,7 @@ import (
 type VideoController interface {
 	// UploadVideo 老师上传视频
 	UploadVideo(c *gin.Context, req video.UploadVideoReq, file multipart.File, fileHeader *multipart.FileHeader, claim ijwt.UserClaim) (http.Response, error)
-	GetTaskUploadingProcess(c *gin.Context, req video.UploadVideoReq) (http.Response, error)
+	GetTaskUploadingProcess(c *gin.Context, req video.GetTaskUploadingProcessReq) (http.Response, error)
 	// GetVideoDetail 获取视频任务详情
 	GetVideoDetail(c *gin.Context, req video.GetVideoDetailReq) (http.Response, error)
 	// PostVideoToClass 给指定班级发送视频任务
@@ -88,9 +90,35 @@ func (vc *videoController) UploadVideo(c *gin.Context, req video.UploadVideoReq,
 	return http.Success(resp), nil
 }
 
-func (vc *videoController) GetTaskUploadingProcess(c *gin.Context, req video.UploadVideoReq) (http.Response, error) {
-	//TODO implement me
-	panic("implement me")
+// GetTaskUploadingProcess 获取视频任务发送进度
+// @Summary 获取视频任务发送进度
+// @Description 获取视频任务发送进度
+// @Tags video
+// @Produce json
+// @Param Authorization header string true "Bearer Token" default(Bearer )
+// @Param request body video.GetTaskUploadingProcessReq true "请求参数"
+// @Success 200 {object} http.Response "成功"
+// @Failure 401 {object} http.Response "未授权"
+// @Router /api/v1/video/task/process [post]
+func (vc *videoController) GetTaskUploadingProcess(c *gin.Context, req video.GetTaskUploadingProcessReq) (http.Response, error) {
+	job, err := vc.ps.GetJob(c, req.JobID)
+	if err != nil {
+		return http.Response{}, err
+	}
+	stages, err := vc.ps.ListStages(c, req.JobID)
+	if err != nil {
+		return http.Response{}, err
+	}
+	stage := ""
+	if len(stages) > 0 {
+		stage = stages[len(stages)-1].Stage
+	}
+	_ = stages // 预留：后续可把 stages 全量返回给前端
+	return http.Success(video.GetTaskUploadingProcessResp{
+		JobID:  job.JobID,
+		Status: job.Status,
+		Stage:  stage,
+	}), nil
 }
 
 // GetVideoDetail 获取视频任务详情
@@ -104,7 +132,74 @@ func (vc *videoController) GetTaskUploadingProcess(c *gin.Context, req video.Upl
 // @Failure 401 {object} http.Response "未授权"
 // @Router	/api/v1/video/getDetail/{video_id} [get]
 func (vc *videoController) GetVideoDetail(c *gin.Context, req video.GetVideoDetailReq) (http.Response, error) {
-	return http.Response{}, nil
+	v, segs, kps, qs, qkps, err := vc.vs.GetVideoDetail(c, req.VideoID)
+	if err != nil {
+		return http.Response{}, err
+	}
+
+	kpResp := make([]video.KnowledgePointResp, 0, len(kps))
+	for _, kp := range kps {
+		kpResp = append(kpResp, video.KnowledgePointResp{
+			ID:          kp.ID,
+			KnowledgeID: kp.KnowledgeID,
+			Title:       kp.Title,
+			Content:     kp.Content,
+		})
+	}
+
+	quizResp := make([]question.Question, 0, len(qs))
+	segmentQuiz := map[uint]question.Question{}
+	for _, q := range qs {
+		var opts []string
+		if q.Options != nil {
+			opts = q.Options
+		}
+		kplist := qkps[q.ID]
+		kpsOut := make([]question.KnowledgePoint, 0, len(kplist))
+		for _, kp := range kplist {
+			kpsOut = append(kpsOut, question.KnowledgePoint{
+				KnowledgeID: kp.ID,
+				Title:       kp.Title,
+			})
+		}
+		qResp := question.Question{
+			ID:              q.ID,
+			Type:            q.Type,
+			Content:         q.Content,
+			Options:         opts,
+			Answer:          q.Answer,
+			Analysis:        q.Analysis,
+			KnowledgePoints: kpsOut,
+			SegmentID:       q.SegmentID,
+		}
+
+		if q.SegmentID != nil {
+			segmentQuiz[*q.SegmentID] = qResp
+		} else {
+			quizResp = append(quizResp, qResp)
+		}
+	}
+
+	segResp := make([]video.Segment, 0, len(segs))
+	for _, s := range segs {
+		segResp = append(segResp, video.Segment{
+			ID:        s.ID,
+			SegmentID: s.SegmentID,
+			Start:     s.Start,
+			End:       s.End,
+			Text:      s.Text,
+			Question:  segmentQuiz[s.ID],
+		})
+	}
+
+	return http.Success(video.GetVideoDetailResp{
+		VideoID:   v.ID,
+		Title:     v.Title,
+		Duration:  v.Duration,
+		Segments:  segResp,
+		Knowledge: kpResp,
+		Questions: quizResp,
+	}), nil
 }
 
 // PostVideoToClass 给指定班级发送视频任务
@@ -118,7 +213,17 @@ func (vc *videoController) GetVideoDetail(c *gin.Context, req video.GetVideoDeta
 // @Failure 401 {object} http.Response "未授权"
 // @Router /api/v1/video/post-to-class [post]
 func (vc *videoController) PostVideoToClass(c *gin.Context, req video.PostVideoToClassReq) (http.Response, error) {
-	return http.Response{}, nil
+	claim, err := ginx.GetClaim(c)
+	if err != nil {
+		return http.Response{}, errors.UploadVideoError(err)
+	}
+	if domain.RoleType(claim.Role) != domain.Role_Teacher {
+		return http.Response{}, errors.UploadVideoError(errors1.New("无下发任务权限"))
+	}
+	if err := vc.vs.AssignVideoToClasses(c, req.VideoID, req.ClassList); err != nil {
+		return http.Response{}, err
+	}
+	return http.Success(nil), nil
 }
 
 // GetClassVideoTasks 学生获取班级任务信息
@@ -132,5 +237,18 @@ func (vc *videoController) PostVideoToClass(c *gin.Context, req video.PostVideoT
 // @Failure 401 {object} http.Response "未授权"
 // @Router	/api/v1/video/getTasks/{class_id} [get]
 func (vc *videoController) GetClassVideoTasks(c *gin.Context, req video.GetClassVideosReq) (http.Response, error) {
-	return http.Response{}, nil
+	vs, err := vc.vs.ListClassVideoTasks(c, req.ClassID)
+	if err != nil {
+		return http.Response{}, err
+	}
+	out := make([]video.VideoTask, 0, len(vs))
+	for _, v := range vs {
+		out = append(out, video.VideoTask{
+			VideoID:   v.ID,
+			Title:     v.Title,
+			Status:    "",
+			CreatedAt: v.CreatedAt,
+		})
+	}
+	return http.Success(video.GetClassVideosResp{VideoTasks: out}), nil
 }

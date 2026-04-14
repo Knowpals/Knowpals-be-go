@@ -1,11 +1,14 @@
 package domain
 
+import "time"
+
 type Video struct {
 	ID        uint
 	TeacherID uint
 	FileKey   string
 	Title     string
 	Duration  int
+	CreatedAt time.Time
 }
 
 type Segment struct {

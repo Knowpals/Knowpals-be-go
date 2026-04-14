@@ -1,21 +1,32 @@
 package behavior
 
 import (
+	"errors"
+
 	"github.com/Knowpals/Knowpals-be-go/api/http"
 	"github.com/Knowpals/Knowpals-be-go/api/http/behavior"
+	"github.com/Knowpals/Knowpals-be-go/domain"
+	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
+	behavior2 "github.com/Knowpals/Knowpals-be-go/service/behavior"
 	"github.com/gin-gonic/gin"
 )
 
 type BehaviorController interface {
 	// RecordAction 记录学生观看行为
-	RecordAction(c *gin.Context, req behavior.RecordActionReq) (http.Response, error)
+	RecordAction(c *gin.Context, req behavior.RecordActionReq, claim ijwt.UserClaim) (http.Response, error)
 	// UpdateVideoProgress 更新学生观看进度
-	UpdateVideoProgress(c *gin.Context, req behavior.UpdateProgressReq) (http.Response, error)
+	UpdateVideoProgress(c *gin.Context, req behavior.UpdateProgressReq, claim ijwt.UserClaim) (http.Response, error)
 	// GetClassVideoProgress 获取学生班级内所有视频观看进度
-	GetClassVideoProgress(c *gin.Context, req behavior.GetClassVideoProgressReq) (http.Response, error)
+	GetClassVideoProgress(c *gin.Context, req behavior.GetClassVideoProgressReq, claim ijwt.UserClaim) (http.Response, error)
 }
 
-type behaviorController struct{}
+type behaviorController struct {
+	svc behavior2.BehaviorService
+}
+
+func NewBehaviorController(svc behavior2.BehaviorService) BehaviorController {
+	return &behaviorController{svc: svc}
+}
 
 // RecordAction 记录播放行为（pause/replay/play）
 // @Summary 记录学生视频观看行为
@@ -29,8 +40,19 @@ type behaviorController struct{}
 // @Failure 401 {object} http.Response "未授权"
 // @Failure 400 {object} http.Response "参数错误"
 // @Router /api/v1/behavior/record [post]
-func (bc *behaviorController) RecordAction(c *gin.Context, req behavior.RecordActionReq) (http.Response, error) {
-	return http.Response{}, nil
+func (bc *behaviorController) RecordAction(c *gin.Context, req behavior.RecordActionReq, claim ijwt.UserClaim) (http.Response, error) {
+	if domain.RoleType(claim.Role) != domain.Role_Student {
+		return http.Response{}, errors.New("无权限")
+	}
+	if err := bc.svc.RecordAction(c, claim.ID, domain.WatchAction{
+		VideoID:   req.VideoID,
+		SegmentID: req.SegmentID,
+		Event:     req.Event,
+		Duration:  req.Duration,
+	}); err != nil {
+		return http.Response{}, err
+	}
+	return http.Success(nil), nil
 }
 
 // UpdateVideoProgress 更新视频播放进度
@@ -45,8 +67,17 @@ func (bc *behaviorController) RecordAction(c *gin.Context, req behavior.RecordAc
 // @Failure 401 {object} http.Response "未授权"
 // @Failure 400 {object} http.Response "参数错误"
 // @Router /api/v1/behavior/update-progress [post]
-func (bc *behaviorController) UpdateVideoProgress(c *gin.Context, req behavior.UpdateProgressReq) (http.Response, error) {
-	return http.Response{}, nil
+func (bc *behaviorController) UpdateVideoProgress(c *gin.Context, req behavior.UpdateProgressReq, claim ijwt.UserClaim) (http.Response, error) {
+	if domain.RoleType(claim.Role) != domain.Role_Student {
+		return http.Response{}, errors.New("无权限")
+	}
+	if err := bc.svc.UpdateProgress(c, claim.ID, domain.WatchProgress{
+		VideoID:    req.VideoID,
+		CurrentSec: req.CurrentSec,
+	}); err != nil {
+		return http.Response{}, err
+	}
+	return http.Success(nil), nil
 }
 
 // GetClassVideoProgress 获取班级视频学习进度
@@ -60,6 +91,23 @@ func (bc *behaviorController) UpdateVideoProgress(c *gin.Context, req behavior.U
 // @Failure 401 {object} http.Response "未授权"
 // @Failure 400 {object} http.Response "参数错误"
 // @Router /api/v1/behavior/class-progress/{class_id} [get]
-func (bc *behaviorController) GetClassVideoProgress(c *gin.Context, req behavior.GetClassVideoProgressReq) (http.Response, error) {
-	return http.Response{}, nil
+func (bc *behaviorController) GetClassVideoProgress(c *gin.Context, req behavior.GetClassVideoProgressReq, claim ijwt.UserClaim) (http.Response, error) {
+	if !domain.RoleType(claim.Role).IsValid() {
+		return http.Response{}, errors.New("无权限")
+	}
+	items, err := bc.svc.GetClassVideoProgress(c, claim.ID, req.ClassID)
+	if err != nil {
+		return http.Response{}, err
+	}
+	out := make([]behavior.VideoProgress, 0, len(items))
+	for _, it := range items {
+		out = append(out, behavior.VideoProgress{
+			VideoID:         it.VideoID,
+			Title:           it.Title,
+			Status:          it.Status,
+			ProgressPercent: it.ProgressPercent,
+			WatchTime:       it.WatchTime,
+		})
+	}
+	return http.Success(behavior.GetClassVideoProgressResp{ProgressList: out}), nil
 }

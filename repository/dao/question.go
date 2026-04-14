@@ -11,7 +11,7 @@ import (
 
 type QuestionDao interface {
 	// ReplaceQuestionsForVideo 删除该视频下旧题目及题目-知识点关联后批量写入新题目（流水线幂等）
-	ReplaceQuestionsForVideo(ctx context.Context, videoID uint, items []domain.QuizQuestion) error
+	ReplaceQuestionsForVideo(ctx context.Context, videoID uint, items []domain.Question) error
 }
 
 type questionDao struct {
@@ -22,7 +22,7 @@ func NewQuestionDao(db *gorm.DB) QuestionDao {
 	return &questionDao{db: db}
 }
 
-func (d *questionDao) ReplaceQuestionsForVideo(ctx context.Context, videoID uint, items []domain.QuizQuestion) error {
+func (d *questionDao) ReplaceQuestionsForVideo(ctx context.Context, videoID uint, items []domain.Question) error {
 	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var oldIDs []uint
 		if err := tx.Model(&model.Question{}).Where("video_id = ?", videoID).Pluck("id", &oldIDs).Error; err != nil {

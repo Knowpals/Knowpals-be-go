@@ -21,7 +21,7 @@ type VideoProgress struct {
 }
 
 type GetClassVideoProgressReq struct {
-	ClassID uint `json:"class_id"`
+	ClassID uint `uri:"class_id" binding:"required"`
 }
 
 type GetClassVideoProgressResp struct {

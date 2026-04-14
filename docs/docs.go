@@ -1170,6 +1170,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/video/task/process": {
+            "post": {
+                "description": "获取视频任务发送进度",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "video"
+                ],
+                "summary": "获取视频任务发送进度",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/video.GetTaskUploadingProcessReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "$ref": "#/definitions/http.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/http.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/video/upload": {
             "post": {
                 "description": "教师上传教学视频，支持 mp4 格式，form-data 提交",
@@ -1498,7 +1543,10 @@ const docTemplate = `{
                     }
                 },
                 "options": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "segment_id": {
                     "type": "integer"
@@ -1788,9 +1836,29 @@ const docTemplate = `{
                 }
             }
         },
+        "video.GetTaskUploadingProcessReq": {
+            "type": "object",
+            "required": [
+                "jobID"
+            ],
+            "properties": {
+                "jobID": {
+                    "type": "string"
+                }
+            }
+        },
         "video.GetVideoDetailResp": {
             "type": "object",
             "properties": {
+                "duration": {
+                    "type": "integer"
+                },
+                "knowledge": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/video.KnowledgePointResp"
+                    }
+                },
                 "questions": {
                     "type": "array",
                     "items": {
@@ -1802,6 +1870,29 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/video.Segment"
                     }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "video_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "video.KnowledgePointResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "knowledge_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -1828,8 +1919,20 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "knowledge_id": {
+                    "type": "string"
+                },
+                "question": {
+                    "$ref": "#/definitions/question.Question"
+                },
+                "segment_id": {
+                    "type": "string"
+                },
                 "start": {
                     "type": "integer"
+                },
+                "text": {
+                    "type": "string"
                 }
             }
         },
@@ -1838,6 +1941,9 @@ const docTemplate = `{
             "properties": {
                 "duration": {
                     "type": "integer"
+                },
+                "job_id": {
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"

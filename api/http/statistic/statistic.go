@@ -1,7 +1,7 @@
 package statistic
 
 type GetStudentStatReq struct {
-	VideoID uint `json:"video_id"`
+	VideoID uint `uri:"video_id" binding:"required"`
 }
 
 // 知识点的分数根据公式算(题目*0.6+暂停*0.4)
