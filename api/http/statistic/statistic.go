@@ -12,16 +12,29 @@ type KnowledgePoint struct {
 }
 
 type GetStudentStatResp struct {
-	//任务完成情况：finished | in_progress | todo | expired
+	//任务完成情况：finished | todo | expired
 	Status string `json:"status"`
 	//题目正确率
 	CorrectRate float64 `json:"correct_rate"`
 	//视频观看时长
 	TimeCost int `json:"time_cost"`
-	//暂停总时长
+	//暂停总次数
 	PauseCount int `json:"pause_count"`
+	//回看总次数
+	ReplayCount int `json:"replay_count"`
 	//薄弱知识点（薄弱知识点得分，要提前确定一个阈值）
 	WeakKnowledgePoints []KnowledgePoint `json:"knowledge_points"`
+	//暂停次数最高的片段（TopN）
+	TopPauseAction []PauseAction `json:"top_pause_action"`
+	//回放次数最高的片段（TopN）
+	TopReplayAction []ReplayAction `json:"top_replay_action"`
+}
+
+type GetStudentOverviewResp struct {
+	TotalWatchTimeSec int     `json:"total_watch_time_sec"`
+	FinishedCount     int     `json:"finished_count"`
+	TotalCount        int     `json:"total_count"`
+	CorrectRate       float64 `json:"correct_rate"`
 }
 
 type Overview struct {

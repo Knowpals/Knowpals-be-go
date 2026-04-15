@@ -14,6 +14,7 @@ const (
 	SendVerifyCodeErrorCode
 	VerifyCodeErrorCode
 	LoginErrorCode
+	ForgotPasswordErrorCode
 )
 
 const (
@@ -48,5 +49,9 @@ var (
 
 	LoginError = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, LoginErrorCode, "登陆失败", err)
+	}
+
+	ForgotPasswordError = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, ForgotPasswordErrorCode, "重置密码失败", err)
 	}
 )

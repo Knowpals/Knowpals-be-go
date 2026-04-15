@@ -1,15 +1,18 @@
 package model
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
 type Video struct {
 	gorm.Model
-	Title     string `gorm:"column:title;type:varchar(100);not null"`
-	FileKey   string `gorm:"column:file_key;type:varchar(100);not null"`
-	TeacherID uint   `gorm:"column:teacher_id;type:bigint;not null"`
-	Duration  int    `gorm:"column:duration;not null"`
+	Title     string    `gorm:"column:title;type:varchar(100);not null"`
+	FileKey   string    `gorm:"column:file_key;type:varchar(100);not null"`
+	TeacherID uint      `gorm:"column:teacher_id;type:bigint;not null"`
+	Duration  int       `gorm:"column:duration;not null"`
+	Deadline  time.Time `gorm:"column:deadline;type:datetime"`
 }
 
 func (Video) TableName() string {

@@ -20,12 +20,12 @@ func NewGinEngine(
 	sc statistic.StatController,
 	auth *middleware.AuthMiddleware,
 	log *middleware.LoggerMiddleware,
-	// otel *middleware.OtelMiddleware,
+	cors *middleware.CorsMiddleware,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(
-		//otel.MiddlewareFunc(),
 		log.MiddlewareFunc(),
+		cors.MiddlewareFunc(),
 	)
 	apiV1 := r.Group("/api/v1")
 	RegisterUserRoute(apiV1, uc, auth)

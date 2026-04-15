@@ -10,7 +10,7 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/config"
 	behavior2 "github.com/Knowpals/Knowpals-be-go/controller/behavior"
 	class2 "github.com/Knowpals/Knowpals-be-go/controller/class"
-	question2 "github.com/Knowpals/Knowpals-be-go/controller/question"
+	"github.com/Knowpals/Knowpals-be-go/controller/question"
 	statistic2 "github.com/Knowpals/Knowpals-be-go/controller/statistic"
 	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
 	video2 "github.com/Knowpals/Knowpals-be-go/controller/video"
@@ -24,10 +24,10 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
+	"github.com/Knowpals/Knowpals-be-go/service/behavior"
 	"github.com/Knowpals/Knowpals-be-go/service/class"
-	behavior3 "github.com/Knowpals/Knowpals-be-go/service/behavior"
 	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
-	statistic3 "github.com/Knowpals/Knowpals-be-go/service/statistic"
+	"github.com/Knowpals/Knowpals-be-go/service/statistic"
 	"github.com/Knowpals/Knowpals-be-go/service/user"
 	"github.com/Knowpals/Knowpals-be-go/service/video"
 	"github.com/Knowpals/Knowpals-be-go/web"
@@ -52,10 +52,6 @@ func InitApp(conf *config.Config) *App {
 	logger := ioc.InitZapLogger(conf)
 	videoDao := dao.NewVideoDao(db, logger)
 	videoService := video.NewVideoService(videoDao)
-	behaviorDao := dao.NewBehaviorDao(db)
-	behaviorService := behavior3.NewBehaviorService(behaviorDao, videoDao)
-	statisticDao := dao.NewStatisticDao(db)
-	statService := statistic3.NewStatService(statisticDao)
 	pipelineDao := dao.NewPipelineDao(db)
 	knowledgeDao := dao.NewKnowledgeDao(db)
 	segmentDao := dao.NewSegmentDao(db)
@@ -63,13 +59,18 @@ func InitApp(conf *config.Config) *App {
 	saramaClient := ioc.InitKafka(conf)
 	producerProducer := producer.NewSaramaProducer(saramaClient)
 	pipelineService := pipeline.NewPipelineService(pipelineDao, videoDao, knowledgeDao, segmentDao, questionDao, producerProducer, cosCOSClient, logger)
-	videoController := video2.NewVideoController(cosCOSClient, videoService, pipelineService)
-	questionController := question2.NewQuestionController(db)
+	behaviorDao := dao.NewBehaviorDao(db)
+	behaviorService := behavior.NewBehaviorService(behaviorDao, videoDao)
+	videoController := video2.NewVideoController(cosCOSClient, videoService, pipelineService, behaviorService)
+	questionController := question.NewQuestionController(db)
 	behaviorController := behavior2.NewBehaviorController(behaviorService)
+	statisticDao := dao.NewStatisticDao(db)
+	statService := statistic.NewStatService(statisticDao)
 	statController := statistic2.NewStatController(statService)
 	authMiddleware := middleware.NewAuthMiddleware(jwtHandler)
 	loggerMiddleware := middleware.NewLoggerMiddleware(logger)
-	engine := web.NewGinEngine(userController, classController, videoController, questionController, behaviorController, statController, authMiddleware, loggerMiddleware)
+	corsMiddleware := middleware.NewCorsMiddleware()
+	engine := web.NewGinEngine(userController, classController, videoController, questionController, behaviorController, statController, authMiddleware, loggerMiddleware, corsMiddleware)
 	pipelineWorker := events.NewPipelineWorker(pipelineService)
 	string2 := ioc.InitKafkaConsumerGroupID(conf)
 	consumerConsumer := consumer.NewSaramaConsumer(saramaClient, string2)

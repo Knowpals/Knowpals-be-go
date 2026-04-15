@@ -37,3 +37,9 @@ type LoginResp struct {
 type GetUserRequest struct {
 	ID uint `uri:"id" biding:"required"`
 }
+
+type ForgotPasswordReq struct {
+	Email       string `json:"email" binding:"required"`
+	VerifyCode  string `json:"verify_code" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}

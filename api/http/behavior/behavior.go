@@ -1,5 +1,7 @@
 package behavior
 
+import "time"
+
 type RecordActionReq struct {
 	VideoID   uint   `json:"video_id"`
 	SegmentID uint   `json:"segment_id"`
@@ -13,15 +15,18 @@ type UpdateProgressReq struct {
 }
 
 type VideoProgress struct {
-	VideoID         uint   `json:"video_id"`
-	Title           string `json:"title"`
-	Status          string `json:"status"`           //finished | in_progress | todo
-	ProgressPercent int    `json:"progress_percent"` //完成进度百分比
-	WatchTime       int    `json:"watch_time"`       //总观看时长
+	VideoID         uint       `json:"video_id"`
+	Title           string     `json:"title"`
+	Status          string     `json:"status"`           //finished | todo | expired
+	ProgressPercent int        `json:"progress_percent"` //完成进度百分比
+	WatchTime       int        `json:"watch_time"`       //总观看时长
+	Deadline        *time.Time `json:"deadline"`
+	CreatedAt       time.Time  `json:"created_at"`
 }
 
 type GetClassVideoProgressReq struct {
-	ClassID uint `uri:"class_id" binding:"required"`
+	ClassID uint   `uri:"class_id" binding:"required"`
+	Status  string `uri:"status" binding:"required"`
 }
 
 type GetClassVideoProgressResp struct {

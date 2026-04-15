@@ -21,6 +21,7 @@ type VideoDao interface {
 	ListQuestionKnowledge(ctx context.Context, questionIDs []uint) (map[uint][]domain.KnowledgePoint, error)
 	AssignVideoToClasses(ctx context.Context, videoID uint, classIDs []uint) error
 	ListClassVideoTasks(ctx context.Context, classID uint) ([]domain.Video, error)
+	ListVideosByTeacher(ctx context.Context, teacherID uint) ([]domain.Video, error)
 }
 
 type videoDao struct {
@@ -37,6 +38,7 @@ func (vd *videoDao) SaveVideo(ctx context.Context, video domain.Video) (uint, er
 		TeacherID: video.TeacherID,
 		Title:     video.Title,
 		FileKey:   video.FileKey,
+		Deadline:  video.Deadline,
 	}
 	if err := vd.db.WithContext(ctx).Create(&videoModel).Error; err != nil {
 		return 0, err
@@ -55,6 +57,7 @@ func (vd *videoDao) GetVideoByID(ctx context.Context, id uint) (domain.Video, er
 		FileKey:   m.FileKey,
 		Title:     m.Title,
 		Duration:  m.Duration,
+		Deadline:  m.Deadline,
 	}, nil
 }
 
@@ -233,7 +236,31 @@ func (vd *videoDao) ListClassVideoTasks(ctx context.Context, classID uint) ([]do
 			Title:     v.Title,
 			Duration:  v.Duration,
 			CreatedAt: v.CreatedAt,
+			Deadline:  v.Deadline,
 		})
 	}
 	return out, nil
+}
+
+func (vd *videoDao) ListVideosByTeacher(ctx context.Context, teacherID uint) ([]domain.Video, error) {
+	var videoModels []model.Video
+	err := vd.db.WithContext(ctx).Model(&model.Video{}).Where("teacher_id=?", teacherID).Find(&videoModels).Error
+	if err != nil {
+		return nil, err
+	}
+
+	videos := make([]domain.Video, 0, len(videoModels))
+	for _, m := range videoModels {
+		videos = append(videos, domain.Video{
+			ID:        m.ID,
+			TeacherID: teacherID,
+			FileKey:   m.FileKey,
+			Title:     m.Title,
+			Duration:  m.Duration,
+			CreatedAt: m.CreatedAt,
+			Deadline:  m.Deadline,
+		})
+	}
+
+	return videos, nil
 }

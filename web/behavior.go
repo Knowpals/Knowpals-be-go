@@ -13,6 +13,6 @@ func RegisterBehaviorRoute(r *gin.RouterGroup, bc behavior.BehaviorController, a
 	{
 		c.POST("/record", ginx.WrapReqAndClaim(bc.RecordAction))
 		c.POST("/update-progress", ginx.WrapReqAndClaim(bc.UpdateVideoProgress))
-		c.GET("/class-progress/:class_id", ginx.WrapUriAndClaim(bc.GetClassVideoProgress))
+		c.GET("/class-progress/:class_id/:status", ginx.WrapUriAndClaim(bc.GetClassVideoProgress))
 	}
 }

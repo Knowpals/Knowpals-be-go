@@ -7,7 +7,8 @@ import (
 )
 
 type UploadVideoReq struct {
-	Title string `form:"title" binding:"required"`
+	Title    string `form:"title" binding:"required"`
+	Deadline string `form:"deadline" binding:"required"`
 }
 
 type UploadVideoResp struct {
@@ -61,6 +62,7 @@ type VideoTask struct {
 	Title     string    `json:"title"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
+	Deadline  time.Time `json:"deadline"`
 }
 
 type GetClassVideosResp struct {
@@ -75,4 +77,8 @@ type GetTaskUploadingProcessResp struct {
 	JobID  string `json:"job_id"`
 	Status string `json:"status"`
 	Stage  string `json:"stage"`
+}
+
+type GetMyUploadedVideosResp struct {
+	Videos []VideoTask `json:"videos"`
 }

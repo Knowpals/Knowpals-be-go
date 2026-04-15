@@ -1,5 +1,6 @@
 .idea
-*/config.yaml
+config/config.yaml
 */*.xml
 */*.log
 .gocache
+app

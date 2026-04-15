@@ -16,6 +16,7 @@ func RegisterVideoRoute(r *gin.RouterGroup, controller video1.VideoController, a
 		c.POST("/post-to-class", ginx.WrapReq(controller.PostVideoToClass))
 		c.GET("/getTasks/:class_id", ginx.WrapUri(controller.GetClassVideoTasks))
 		c.POST("/task/process", ginx.WrapReq(controller.GetTaskUploadingProcess))
+		c.GET("/my-uploaded", ginx.WrapClaim(controller.GetMyUploadedVideos))
 	}
 
 }

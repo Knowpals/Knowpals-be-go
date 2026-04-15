@@ -20,6 +20,7 @@ type UserService interface {
 	LoginByPassword(ctx context.Context, email string, password string) (domain.User, error)
 	LoginByVerifyCode(ctx context.Context, email string, code string) (domain.User, error)
 	GetUserByID(ctx context.Context, id uint) (domain.User, error)
+	ForgotPassword(ctx context.Context, email string, code string, newPassword string) error
 }
 
 type userService struct {
@@ -111,4 +112,23 @@ func (us *userService) LoginByVerifyCode(ctx context.Context, email string, code
 
 	return u, nil
 
+}
+
+func (us *userService) ForgotPassword(ctx context.Context, email string, code string, newPassword string) error {
+	c, err := us.cache.GetCode(ctx, email)
+	if err != nil {
+		return errors.ForgotPasswordError(err)
+	}
+	if c != code {
+		return errors.ForgotPasswordError(errors1.New("验证码错误"))
+	}
+	// 确认用户存在
+	_, err = us.dao.GetUserByEmail(ctx, email)
+	if err != nil {
+		return errors.ForgotPasswordError(err)
+	}
+	if err := us.dao.UpdatePasswordByEmail(ctx, email, newPassword); err != nil {
+		return errors.ForgotPasswordError(err)
+	}
+	return nil
 }

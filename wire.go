@@ -22,8 +22,8 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
-	classService "github.com/Knowpals/Knowpals-be-go/service/class"
 	behaviorService "github.com/Knowpals/Knowpals-be-go/service/behavior"
+	classService "github.com/Knowpals/Knowpals-be-go/service/class"
 	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
 	statService "github.com/Knowpals/Knowpals-be-go/service/statistic"
 	"github.com/Knowpals/Knowpals-be-go/service/user"
@@ -40,7 +40,7 @@ func InitApp(conf *config.Config) *App {
 		//middleware
 		middleware.NewAuthMiddleware,
 		middleware.NewLoggerMiddleware,
-		//middleware.NewOtelMiddleware,
+		middleware.NewCorsMiddleware,
 
 		//基础设施层
 		ioc.InitDB,

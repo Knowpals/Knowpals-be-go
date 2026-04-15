@@ -21,6 +21,8 @@ type UserController interface {
 	LoginByVerifyCode(c *gin.Context, request user.LoginByVerifyCode) (http.Response, error)
 	// GetUserByID 通过id查找用户
 	GetUserByID(c *gin.Context, request user.GetUserRequest) (http.Response, error)
+	// ForgotPassword 忘记密码重置
+	ForgotPassword(c *gin.Context, request user.ForgotPasswordReq) (http.Response, error)
 }
 
 type userController struct {
@@ -146,4 +148,18 @@ func (uc *userController) GetUserByID(c *gin.Context, request user.GetUserReques
 	}
 
 	return http.Success(u), nil
+}
+
+// ForgotPassword 忘记密码重置
+// @Summary 忘记密码
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body user.ForgotPasswordReq true "重置密码参数"
+// @Router /api/v1/user/forgotPassword [post]
+func (uc *userController) ForgotPassword(c *gin.Context, request user.ForgotPasswordReq) (http.Response, error) {
+	if err := uc.service.ForgotPassword(c, request.Email, request.VerifyCode, request.NewPassword); err != nil {
+		return http.Response{}, err
+	}
+	return http.Success(nil), nil
 }

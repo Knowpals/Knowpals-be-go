@@ -2,6 +2,7 @@ package behavior
 
 import (
 	"context"
+	"time"
 
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	errors2 "github.com/Knowpals/Knowpals-be-go/errors"
@@ -11,7 +12,7 @@ import (
 type BehaviorService interface {
 	RecordAction(ctx context.Context, studentID uint, action domain.WatchAction) error
 	UpdateProgress(ctx context.Context, studentID uint, progress domain.WatchProgress) error
-	GetClassVideoProgress(ctx context.Context, studentID uint, classID uint) ([]domain.VideoProgress, error)
+	GetClassVideoProgress(ctx context.Context, studentID uint, classID uint, status string) ([]domain.VideoProgress, error)
 }
 
 type behaviorService struct {
@@ -36,9 +37,13 @@ func (bs *behaviorService) UpdateProgress(ctx context.Context, studentID uint, p
 	if err != nil {
 		return errors2.UpdateProgressError(err)
 	}
-	status := "in_progress"
-	if video.Duration > 0 && progress.CurrentSec >= int(float64(video.Duration)*0.9) {
+	status := "todo"
+	if video.Duration > 0 && progress.CurrentSec >= int(float64(video.Duration)*0.9) && time.Now().Before(video.Deadline) {
 		status = "finished"
+	}
+
+	if progress.CurrentSec < int(float64(video.Duration)*0.9) && time.Now().After(video.Deadline) {
+		status = "expired"
 	}
 	if err := bs.behaviorDao.UpdateProgress(ctx, studentID, progress, status); err != nil {
 		return errors2.UpdateProgressError(err)
@@ -46,8 +51,8 @@ func (bs *behaviorService) UpdateProgress(ctx context.Context, studentID uint, p
 	return nil
 }
 
-func (bs *behaviorService) GetClassVideoProgress(ctx context.Context, studentID uint, classID uint) ([]domain.VideoProgress, error) {
-	out, err := bs.behaviorDao.GetClassVideoProgress(ctx, studentID, classID)
+func (bs *behaviorService) GetClassVideoProgress(ctx context.Context, studentID uint, classID uint, status string) ([]domain.VideoProgress, error) {
+	out, err := bs.behaviorDao.GetClassVideoProgress(ctx, studentID, classID, status)
 	if err != nil {
 		return nil, errors2.GetClassVideoProgressError(err)
 	}

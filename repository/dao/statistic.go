@@ -11,6 +11,7 @@ import (
 type StatisticDao interface {
 	GetStudentVideoStat(ctx context.Context, studentID uint, videoID uint) (domain.StudentVideoStat, error)
 	GetClassVideoStat(ctx context.Context, classID uint, videoID uint) (domain.ClassVideoStat, error)
+	GetStudentOverviewStat(ctx context.Context, studentID uint) (domain.StudentOverviewStat, error)
 }
 
 type statisticDao struct {
@@ -49,12 +50,13 @@ func (d *statisticDao) GetStudentVideoStat(ctx context.Context, studentID uint, 
 
 	// pause count
 	type pauseAgg struct {
-		Pause int64 `gorm:"column:pause"`
+		Pause  int64 `gorm:"column:pause"`
+		Replay int64 `gorm:"column:replay"`
 	}
 	var pa pauseAgg
 	_ = d.db.WithContext(ctx).
 		Model(&model.StudentBehavior{}).
-		Select("sum(pause_count) as pause").
+		Select("sum(pause_count) as pause,sum(replay_count) as replay").
 		Where("student_id=? AND video_id=?", studentID, videoID).
 		Scan(&pa).Error
 
@@ -89,11 +91,88 @@ func (d *statisticDao) GetStudentVideoStat(ctx context.Context, studentID uint, 
 		})
 	}
 
+	// top pause segments for this student (按 pause_sum 排序)
+	type pauseSegRow struct {
+		SegmentID uint  `gorm:"column:segment_id"`
+		PauseSum  int64 `gorm:"column:pause_sum"`
+	}
+	var pauseSegs []pauseSegRow
+	_ = d.db.WithContext(ctx).
+		Model(&model.StudentBehavior{}).
+		Select("segment_id, sum(pause_count) as pause_sum").
+		Where("video_id=? AND student_id=?", videoID, studentID).
+		Group("segment_id").
+		Having("sum(pause_count) > 0").
+		Order("pause_sum desc").
+		Limit(10).
+		Scan(&pauseSegs).Error
+
+	// top replay segments for this student (按 replay_sum 排序)
+	type replaySegRow struct {
+		SegmentID uint  `gorm:"column:segment_id"`
+		ReplaySum int64 `gorm:"column:replay_sum"`
+	}
+	var replaySegs []replaySegRow
+	_ = d.db.WithContext(ctx).
+		Model(&model.StudentBehavior{}).
+		Select("segment_id, sum(replay_count) as replay_sum").
+		Where("video_id=? AND student_id=?", videoID, studentID).
+		Group("segment_id").
+		Having("sum(replay_count) > 0").
+		Order("replay_sum desc").
+		Limit(10).
+		Scan(&replaySegs).Error
+
+	segIDSet := make(map[uint]struct{}, len(pauseSegs)+len(replaySegs))
+	for _, s := range pauseSegs {
+		segIDSet[s.SegmentID] = struct{}{}
+	}
+	for _, s := range replaySegs {
+		segIDSet[s.SegmentID] = struct{}{}
+	}
+	segIDs := make([]uint, 0, len(segIDSet))
+	for id := range segIDSet {
+		segIDs = append(segIDs, id)
+	}
+	var segModels []model.Segment
+	if len(segIDs) > 0 {
+		_ = d.db.WithContext(ctx).Where("id IN ? AND video_id=?", segIDs, videoID).Find(&segModels).Error
+	}
+	segMap := make(map[uint]model.Segment, len(segModels))
+	for _, s := range segModels {
+		segMap[s.ID] = s
+	}
+
+	topPause := make([]domain.ClassPauseAction, 0, len(pauseSegs))
+	for _, s := range pauseSegs {
+		seg := segMap[s.SegmentID]
+		topPause = append(topPause, domain.ClassPauseAction{
+			SegmentID:  s.SegmentID,
+			Start:      seg.Start,
+			End:        seg.End,
+			PauseCount: int(s.PauseSum),
+		})
+	}
+
+	topReplay := make([]domain.ClassReplayAction, 0, len(replaySegs))
+	for _, s := range replaySegs {
+		seg := segMap[s.SegmentID]
+		topReplay = append(topReplay, domain.ClassReplayAction{
+			SegmentID:   s.SegmentID,
+			Start:       seg.Start,
+			End:         seg.End,
+			ReplayCount: int(s.ReplaySum),
+		})
+	}
+
 	return domain.StudentVideoStat{
 		Status:              status,
 		CorrectRate:         correctRate,
 		TimeCost:            timeCost,
 		PauseCount:          int(pa.Pause),
+		ReplayCount:         int(pa.Replay),
+		TopPauseAction:      topPause,
+		TopReplayAction:     topReplay,
 		WeakKnowledgePoints: weak,
 	}, nil
 }
@@ -179,26 +258,50 @@ func (d *statisticDao) GetClassVideoStat(ctx context.Context, classID uint, vide
 		topQs = append(topQs, domain.ClassQuestionStat{QuestionID: r.QuestionID, Content: r.Content, ErrorRate: er})
 	}
 
-	// top pause/replay segments
-	type segRow struct {
-		SegmentID uint
-		PauseSum  int64
-		ReplaySum int64
+	// top pause segments (按 pause_sum 排序)
+	type pauseSegRow struct {
+		SegmentID uint  `gorm:"column:segment_id"`
+		PauseSum  int64 `gorm:"column:pause_sum"`
 	}
-	var segs []segRow
+	var pauseSegs []pauseSegRow
 	_ = d.db.WithContext(ctx).
 		Model(&model.StudentBehavior{}).
-		Select("segment_id, sum(pause_count) as pause_sum, sum(replay_count) as replay_sum").
+		Select("segment_id, sum(pause_count) as pause_sum").
 		Where("video_id=? AND student_id IN ?", videoID, studentIDs).
 		Group("segment_id").
+		Having("sum(pause_count) > 0").
 		Order("pause_sum desc").
 		Limit(10).
-		Scan(&segs).Error
-	var segModels []model.Segment
-	segIDs := make([]uint, 0, len(segs))
-	for _, s := range segs {
-		segIDs = append(segIDs, s.SegmentID)
+		Scan(&pauseSegs).Error
+
+	// top replay segments (按 replay_sum 排序)
+	type replaySegRow struct {
+		SegmentID uint  `gorm:"column:segment_id"`
+		ReplaySum int64 `gorm:"column:replay_sum"`
 	}
+	var replaySegs []replaySegRow
+	_ = d.db.WithContext(ctx).
+		Model(&model.StudentBehavior{}).
+		Select("segment_id, sum(replay_count) as replay_sum").
+		Where("video_id=? AND student_id IN ?", videoID, studentIDs).
+		Group("segment_id").
+		Having("sum(replay_count) > 0").
+		Order("replay_sum desc").
+		Limit(10).
+		Scan(&replaySegs).Error
+
+	segIDSet := make(map[uint]struct{}, len(pauseSegs)+len(replaySegs))
+	for _, s := range pauseSegs {
+		segIDSet[s.SegmentID] = struct{}{}
+	}
+	for _, s := range replaySegs {
+		segIDSet[s.SegmentID] = struct{}{}
+	}
+	segIDs := make([]uint, 0, len(segIDSet))
+	for id := range segIDSet {
+		segIDs = append(segIDs, id)
+	}
+	var segModels []model.Segment
 	if len(segIDs) > 0 {
 		_ = d.db.WithContext(ctx).Where("id IN ? AND video_id=?", segIDs, videoID).Find(&segModels).Error
 	}
@@ -206,11 +309,15 @@ func (d *statisticDao) GetClassVideoStat(ctx context.Context, classID uint, vide
 	for _, s := range segModels {
 		segMap[s.ID] = s
 	}
-	pauseActs := make([]domain.ClassPauseAction, 0, len(segs))
-	replayActs := make([]domain.ClassReplayAction, 0, len(segs))
-	for _, s := range segs {
+
+	pauseActs := make([]domain.ClassPauseAction, 0, len(pauseSegs))
+	for _, s := range pauseSegs {
 		seg := segMap[s.SegmentID]
 		pauseActs = append(pauseActs, domain.ClassPauseAction{SegmentID: s.SegmentID, Start: seg.Start, End: seg.End, PauseCount: int(s.PauseSum)})
+	}
+	replayActs := make([]domain.ClassReplayAction, 0, len(replaySegs))
+	for _, s := range replaySegs {
+		seg := segMap[s.SegmentID]
 		replayActs = append(replayActs, domain.ClassReplayAction{SegmentID: s.SegmentID, Start: seg.Start, End: seg.End, ReplayCount: int(s.ReplaySum)})
 	}
 
@@ -224,5 +331,87 @@ func (d *statisticDao) GetClassVideoStat(ctx context.Context, classID uint, vide
 		TopQuestions:    topQs,
 		TopPauseAction:  pauseActs,
 		TopReplayAction: replayActs,
+	}, nil
+}
+
+func (d *statisticDao) GetStudentOverviewStat(ctx context.Context, studentID uint) (domain.StudentOverviewStat, error) {
+	// 该学生被分配到的全部视频（通过班级任务）
+	type totalRow struct {
+		TotalCount int64 `gorm:"column:total_count"`
+	}
+	var tr totalRow
+	if err := d.db.WithContext(ctx).
+		Table("class_students cs").
+		Select("count(distinct vtc.video_id) as total_count").
+		Joins("join video_to_class vtc on vtc.class_id = cs.class_id").
+		Where("cs.student_id = ?", studentID).
+		Scan(&tr).Error; err != nil {
+		return domain.StudentOverviewStat{}, err
+	}
+
+	// 查出被分配的视频列表（避免在每个聚合里重复连表）
+	var assignedVideoIDs []uint
+	if err := d.db.WithContext(ctx).
+		Table("class_students cs").
+		Select("distinct vtc.video_id").
+		Joins("join video_to_class vtc on vtc.class_id = cs.class_id").
+		Where("cs.student_id = ?", studentID).
+		Pluck("vtc.video_id", &assignedVideoIDs).Error; err != nil {
+		return domain.StudentOverviewStat{}, err
+	}
+
+	if len(assignedVideoIDs) == 0 {
+		return domain.StudentOverviewStat{
+			TotalWatchTimeSec: 0,
+			FinishedCount:     0,
+			TotalCount:        int(tr.TotalCount),
+			CorrectRate:       0,
+		}, nil
+	}
+
+	// 观看总时长（只统计被分配的视频）
+	type watchRow struct {
+		TotalWatch int64 `gorm:"column:total_watch"`
+	}
+	var wr watchRow
+	_ = d.db.WithContext(ctx).
+		Table("student_video_progresses p").
+		Select("sum(p.watch_duration) as total_watch").
+		Where("p.user_id = ? AND p.video_id IN ?", studentID, assignedVideoIDs).
+		Scan(&wr).Error
+
+	// 完成数量（只统计被分配的视频）
+	type finRow struct {
+		Finished int64 `gorm:"column:finished"`
+	}
+	var fr finRow
+	_ = d.db.WithContext(ctx).
+		Table("student_video_progresses p").
+		Select("count(distinct p.video_id) as finished").
+		Where("p.user_id = ? AND p.status = 'finished' AND p.video_id IN ?", studentID, assignedVideoIDs).
+		Scan(&fr).Error
+
+	// 总正确率（只统计被分配的视频的答题记录）
+	type ansRow struct {
+		Total   int64 `gorm:"column:total"`
+		Correct int64 `gorm:"column:correct"`
+	}
+	var ar ansRow
+	_ = d.db.WithContext(ctx).
+		Table("student_answers sa").
+		Select("count(*) as total, sum(case when sa.is_correct then 1 else 0 end) as correct").
+		Where("sa.student_id = ? AND sa.video_id IN ?", studentID, assignedVideoIDs).
+		Scan(&ar).Error
+
+	correctRate := 0.0
+	if ar.Total > 0 {
+		correctRate = float64(ar.Correct) / float64(ar.Total)
+	}
+
+	return domain.StudentOverviewStat{
+		TotalWatchTimeSec: int(wr.TotalWatch),
+		FinishedCount:     int(fr.Finished),
+		TotalCount:        int(tr.TotalCount),
+		CorrectRate:       correctRate,
 	}, nil
 }

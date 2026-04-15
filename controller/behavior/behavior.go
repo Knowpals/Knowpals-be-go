@@ -28,7 +28,7 @@ func NewBehaviorController(svc behavior2.BehaviorService) BehaviorController {
 	return &behaviorController{svc: svc}
 }
 
-// RecordAction 记录播放行为（pause/replay/play）
+// RecordAction 记录播放行为（pause/replay）
 // @Summary 记录学生视频观看行为
 // @Description 记录暂停、回放、播放等行为及时长
 // @Tags behavior
@@ -81,21 +81,22 @@ func (bc *behaviorController) UpdateVideoProgress(c *gin.Context, req behavior.U
 }
 
 // GetClassVideoProgress 获取班级视频学习进度
-// @Summary 获取班级内所有视频的观看进度
-// @Description 获取学生在某个班级下的所有视频学习情况
+// @Summary 获取班级内视频的观看进度
+// @Description 获取学生在某个班级下的视频学习情况
 // @Tags behavior
 // @Produce json
 // @Param Authorization header string true "Bearer Token" default(Bearer )
 // @Param class_id path int true "班级ID"
+// @Param status path string true "视频状态" Enums(all,finished, todo, expired)
 // @Success 200 {object} http.Response{data=behavior.GetClassVideoProgressResp} "成功"
 // @Failure 401 {object} http.Response "未授权"
 // @Failure 400 {object} http.Response "参数错误"
-// @Router /api/v1/behavior/class-progress/{class_id} [get]
+// @Router /api/v1/behavior/class-progress/{class_id}/{status} [get]
 func (bc *behaviorController) GetClassVideoProgress(c *gin.Context, req behavior.GetClassVideoProgressReq, claim ijwt.UserClaim) (http.Response, error) {
 	if !domain.RoleType(claim.Role).IsValid() {
 		return http.Response{}, errors.New("无权限")
 	}
-	items, err := bc.svc.GetClassVideoProgress(c, claim.ID, req.ClassID)
+	items, err := bc.svc.GetClassVideoProgress(c, claim.ID, req.ClassID, req.Status)
 	if err != nil {
 		return http.Response{}, err
 	}
@@ -107,6 +108,8 @@ func (bc *behaviorController) GetClassVideoProgress(c *gin.Context, req behavior
 			Status:          it.Status,
 			ProgressPercent: it.ProgressPercent,
 			WatchTime:       it.WatchTime,
+			Deadline:        it.Deadline,
+			CreatedAt:       it.CreatedAt,
 		})
 	}
 	return http.Success(behavior.GetClassVideoProgressResp{ProgressList: out}), nil

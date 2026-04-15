@@ -15,6 +15,7 @@ type UserDao interface {
 	GetUserByID(ctx context.Context, id uint) (domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	DeleteUser(ctx context.Context, id string) error
+	UpdatePasswordByEmail(ctx context.Context, email string, newPassword string) error
 }
 
 type userDao struct {
@@ -98,4 +99,12 @@ func (ud *userDao) GetUserByEmail(ctx context.Context, email string) (domain.Use
 
 func (ud *userDao) DeleteUser(ctx context.Context, id string) error {
 	return ud.db.WithContext(ctx).Delete(&model.User{}, id).Error
+}
+
+func (ud *userDao) UpdatePasswordByEmail(ctx context.Context, email string, newPassword string) error {
+	return ud.db.WithContext(ctx).
+		Model(&model.User{}).
+		Where("email = ?", email).
+		Update("password", newPassword).
+		Error
 }

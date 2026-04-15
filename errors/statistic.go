@@ -9,6 +9,7 @@ import (
 const (
 	GetStudentStatErrorCode = 55000 + iota
 	GetClassStatErrorCode
+	GetStudentOverviewErrorCode
 )
 
 var (
@@ -18,5 +19,9 @@ var (
 
 	GetClassStatError = func(err error) error {
 		return errorx.New(http.StatusInternalServerError, GetClassStatErrorCode, "获取班级统计情况", err)
+	}
+
+	GetStudentOverviewError = func(err error) error {
+		return errorx.New(http.StatusInternalServerError, GetStudentOverviewErrorCode, "获取学生总览统计情况", err)
 	}
 )

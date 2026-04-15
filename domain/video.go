@@ -9,6 +9,7 @@ type Video struct {
 	Title     string
 	Duration  int
 	CreatedAt time.Time
+	Deadline  time.Time
 }
 
 type Segment struct {

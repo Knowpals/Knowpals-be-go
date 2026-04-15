@@ -12,14 +12,17 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/infra/cos"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ginx"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
+	"github.com/Knowpals/Knowpals-be-go/service/behavior"
 	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
 	video2 "github.com/Knowpals/Knowpals-be-go/service/video"
+	"github.com/Knowpals/Knowpals-be-go/tool"
 	"github.com/gin-gonic/gin"
 )
 
 type VideoController interface {
 	// UploadVideo 老师上传视频
 	UploadVideo(c *gin.Context, req video.UploadVideoReq, file multipart.File, fileHeader *multipart.FileHeader, claim ijwt.UserClaim) (http.Response, error)
+	// GetTaskUploadingProcess 获取视频上传进度
 	GetTaskUploadingProcess(c *gin.Context, req video.GetTaskUploadingProcessReq) (http.Response, error)
 	// GetVideoDetail 获取视频任务详情
 	GetVideoDetail(c *gin.Context, req video.GetVideoDetailReq) (http.Response, error)
@@ -27,19 +30,23 @@ type VideoController interface {
 	PostVideoToClass(c *gin.Context, req video.PostVideoToClassReq) (http.Response, error)
 	// GetClassVideoTasks 学生获取班级任务信息
 	GetClassVideoTasks(c *gin.Context, req video.GetClassVideosReq) (http.Response, error)
+	// GetMyUploadedVideos 老师查询所有上传视频
+	GetMyUploadedVideos(c *gin.Context, claim ijwt.UserClaim) (http.Response, error)
 }
 
 type videoController struct {
 	cos *cos.COSClient
 	vs  video2.VideoService
 	ps  pipeline.PipelineService
+	bs  behavior.BehaviorService
 }
 
-func NewVideoController(cos *cos.COSClient, vs video2.VideoService, ps pipeline.PipelineService) VideoController {
+func NewVideoController(cos *cos.COSClient, vs video2.VideoService, ps pipeline.PipelineService, bs behavior.BehaviorService) VideoController {
 	return &videoController{
 		cos: cos,
 		vs:  vs,
 		ps:  ps,
+		bs:  bs,
 	}
 }
 
@@ -52,6 +59,7 @@ func NewVideoController(cos *cos.COSClient, vs video2.VideoService, ps pipeline.
 // @Param Authorization header string true "Bearer 认证令牌" default(Bearer )
 // @Param title formData string true "视频标题"
 // @Param file formData file true "视频文件"
+// @Param deadline formData string true "截止日期 格式：2025-12-31 23:59:59"
 // @Success 200 {object} http.Response{data=video.UploadVideoResp} "上传成功"
 // @Failure 400 {object} http.Response "参数错误"
 // @Failure 500 {object} http.Response "服务器错误"
@@ -65,8 +73,11 @@ func (vc *videoController) UploadVideo(c *gin.Context, req video.UploadVideoReq,
 	if err != nil {
 		return http.Response{}, errors.UploadVideoError(err)
 	}
-
-	videoID, err := vc.vs.SaveVideo(c, domain.Video{Title: req.Title, TeacherID: claim.ID, FileKey: key})
+	deadline, err := tool.ParseStringToTime(req.Deadline)
+	if err != nil {
+		return http.Response{}, errors.UploadVideoError(errors1.New("截止日期格式错误"))
+	}
+	videoID, err := vc.vs.SaveVideo(c, domain.Video{Title: req.Title, TeacherID: claim.ID, FileKey: key, Deadline: deadline})
 	if err != nil {
 		return http.Response{}, errors.UploadVideoError(err)
 	}
@@ -97,7 +108,7 @@ func (vc *videoController) UploadVideo(c *gin.Context, req video.UploadVideoReq,
 // @Produce json
 // @Param Authorization header string true "Bearer Token" default(Bearer )
 // @Param request body video.GetTaskUploadingProcessReq true "请求参数"
-// @Success 200 {object} http.Response "成功"
+// @Success 200 {object} http.Response{data=video.GetTaskUploadingProcessResp} "成功"
 // @Failure 401 {object} http.Response "未授权"
 // @Router /api/v1/video/task/process [post]
 func (vc *videoController) GetTaskUploadingProcess(c *gin.Context, req video.GetTaskUploadingProcessReq) (http.Response, error) {
@@ -226,9 +237,9 @@ func (vc *videoController) PostVideoToClass(c *gin.Context, req video.PostVideoT
 	return http.Success(nil), nil
 }
 
-// GetClassVideoTasks 学生获取班级任务信息
+// GetClassVideoTasks 老师获取班级任务信息
 // @Summary 获取班级视频任务列表
-// @Description 学生获取所在班级的所有视频任务
+// @Description 老师获取班级的所有视频任务
 // @Tags video
 // @Produce json
 // @Param Authorization header string true "Bearer Token" default(Bearer )
@@ -246,9 +257,38 @@ func (vc *videoController) GetClassVideoTasks(c *gin.Context, req video.GetClass
 		out = append(out, video.VideoTask{
 			VideoID:   v.ID,
 			Title:     v.Title,
-			Status:    "",
 			CreatedAt: v.CreatedAt,
+			Deadline:  v.Deadline,
 		})
 	}
 	return http.Success(video.GetClassVideosResp{VideoTasks: out}), nil
+}
+
+// GetMyUploadedVideos 老师查询自己上传的所有视频
+// @Summary 获取老师上传的视频列表
+// @Tags video
+// @Produce json
+// @Param Authorization header string true "Bearer Token" default(Bearer )
+// @Success 200 {object} http.Response{data=video.GetMyUploadedVideosResp} "成功"
+// @Failure 401 {object} http.Response "未授权"
+// @Router /api/v1/video/my-uploaded [get]
+func (vc *videoController) GetMyUploadedVideos(c *gin.Context, claim ijwt.UserClaim) (http.Response, error) {
+	if domain.RoleType(claim.Role) != domain.Role_Teacher {
+		return http.Response{}, errors.UploadVideoError(errors1.New("无权限"))
+	}
+	vs, err := vc.vs.ListMyUploadedVideos(c, claim.ID)
+	if err != nil {
+		return http.Response{}, err
+	}
+	out := make([]video.VideoTask, 0, len(vs))
+	for _, v := range vs {
+		out = append(out, video.VideoTask{
+			VideoID:   v.ID,
+			Title:     v.Title,
+			Status:    "",
+			CreatedAt: v.CreatedAt,
+			Deadline:  v.Deadline,
+		})
+	}
+	return http.Success(video.GetMyUploadedVideosResp{Videos: out}), nil
 }

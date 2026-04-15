@@ -15,6 +15,7 @@ func RegisterUserRoute(r *gin.RouterGroup, userController user.UserController, a
 		c.POST("/sendCode", ginx.WrapReq(userController.SendCode))
 		c.POST("/loginByPassword", ginx.WrapReq(userController.LoginByPassword))
 		c.POST("/loginByCode", ginx.WrapReq(userController.LoginByVerifyCode))
+		c.POST("/forgotPassword", ginx.WrapReq(userController.ForgotPassword))
 		c.GET("/getUser/:id", auth.MiddlewareFunc(), ginx.WrapUri(userController.GetUserByID))
 	}
 }

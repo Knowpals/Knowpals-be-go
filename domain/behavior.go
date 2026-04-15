@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type WatchAction struct {
 	VideoID   uint
 	SegmentID uint
@@ -18,5 +20,6 @@ type VideoProgress struct {
 	Status          string
 	ProgressPercent int
 	WatchTime       int
+	Deadline        *time.Time
+	CreatedAt       time.Time
 }
-

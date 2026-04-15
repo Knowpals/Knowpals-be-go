@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/Knowpals/Knowpals-be-go/config"
 	"github.com/Knowpals/Knowpals-be-go/events"
@@ -38,11 +39,17 @@ func (a *App) Run() {
 }
 
 func initViper() {
-	cfile := pflag.String("config", "config/config.yaml", "配置文件路径")
+	defaultConfig := "./config/config.yaml"
+	cfile := pflag.String("config", defaultConfig, "配置文件路径")
 	pflag.Parse()
 
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		configPath = *cfile
+	}
+
 	viper.SetConfigType("yaml")
-	viper.SetConfigFile(*cfile)
+	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(err)
@@ -58,7 +65,6 @@ func initViper() {
 
 func main() {
 	initViper()
-
 	app := InitApp(Config)
 	app.Run()
 }

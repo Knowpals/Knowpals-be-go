@@ -7,6 +7,7 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/api/http/statistic"
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ginx"
+	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	statService "github.com/Knowpals/Knowpals-be-go/service/statistic"
 	"github.com/gin-gonic/gin"
 )
@@ -14,6 +15,8 @@ import (
 type StatController interface {
 	// GetStudentStat 获取学生的学习情况
 	GetStudentStat(c *gin.Context, req statistic.GetStudentStatReq) (http.Response, error)
+	// GetStudentOverview 获取学生总体学习统计
+	GetStudentOverview(c *gin.Context, claim ijwt.UserClaim) (http.Response, error)
 	// GetClassStat 获取班级学习情况
 	GetClassStat(c *gin.Context, req statistic.GetClassStatReq) (http.Response, error)
 }
@@ -57,12 +60,57 @@ func (sc *statController) GetStudentStat(c *gin.Context, req statistic.GetStuden
 			MasterScore: kp.MasterScore,
 		})
 	}
+	pauseActs := make([]statistic.PauseAction, 0, len(statDomain.TopPauseAction))
+	for _, a := range statDomain.TopPauseAction {
+		pauseActs = append(pauseActs, statistic.PauseAction{
+			SegmentID:  a.SegmentID,
+			Start:      a.Start,
+			End:        a.End,
+			PauseCount: a.PauseCount,
+		})
+	}
+	replayActs := make([]statistic.ReplayAction, 0, len(statDomain.TopReplayAction))
+	for _, a := range statDomain.TopReplayAction {
+		replayActs = append(replayActs, statistic.ReplayAction{
+			SegmentID:   a.SegmentID,
+			Start:       a.Start,
+			End:         a.End,
+			ReplayCount: a.ReplayCount,
+		})
+	}
 	return http.Success(statistic.GetStudentStatResp{
 		Status:              statDomain.Status,
 		CorrectRate:         statDomain.CorrectRate,
 		TimeCost:            statDomain.TimeCost,
 		PauseCount:          statDomain.PauseCount,
+		ReplayCount:         statDomain.ReplayCount,
 		WeakKnowledgePoints: weak,
+		TopPauseAction:      pauseActs,
+		TopReplayAction:     replayActs,
+	}), nil
+}
+
+// GetStudentOverview 获取学生总体学习统计
+// @Summary 获取学生总体学习统计
+// @Tags statistic
+// @Produce json
+// @Param Authorization header string true "Bearer Token" default(Bearer )
+// @Success 200 {object} http.Response{data=statistic.GetStudentOverviewResp} "成功"
+// @Failure 401 {object} http.Response "未授权"
+// @Router /api/v1/stat/student/overview [get]
+func (sc *statController) GetStudentOverview(c *gin.Context, claim ijwt.UserClaim) (http.Response, error) {
+	if domain.RoleType(claim.Role) != domain.Role_Student {
+		return http.Response{}, errors.New("无权限")
+	}
+	statDomain, err := sc.svc.GetStudentOverview(c, claim.ID)
+	if err != nil {
+		return http.Response{}, err
+	}
+	return http.Success(statistic.GetStudentOverviewResp{
+		TotalWatchTimeSec: statDomain.TotalWatchTimeSec,
+		FinishedCount:     statDomain.FinishedCount,
+		TotalCount:        statDomain.TotalCount,
+		CorrectRate:       statDomain.CorrectRate,
 	}), nil
 }
 

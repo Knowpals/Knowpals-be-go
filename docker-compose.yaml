@@ -1,4 +1,32 @@
 services:
+  knowpals-go:
+    build: ./knowpals-go
+    container_name: knowpals-go
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+      - kafka
+    volumes:
+      - /root/knowpals/config/go-config.yaml:/root/go-config.yaml
+      - /root/knowpals/logs:/logs
+    environment:
+      - CONFIG_PATH=/root/go-config.yaml
+
+  knowpals-python:
+    build: ./knowpals-python
+    container_name: knowpals-python
+    ports:
+      - "5000:5000"
+    depends_on:
+      - kafka
+      - redis
+    volumes:
+      - /root/knowpals/config/python-config.yaml:/root/python-config.yaml
+    environment:
+      - CONFIG_PATH=/root/python-config.yaml
+
   mysql:
     image: mysql:8.0
     container_name: mysql

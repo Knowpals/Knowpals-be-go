@@ -15,16 +15,16 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/behavior/class-progress/{class_id}": {
+        "/api/v1/behavior/class-progress/{class_id}/{status}": {
             "get": {
-                "description": "获取学生在某个班级下的所有视频学习情况",
+                "description": "获取学生在某个班级下的视频学习情况",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "behavior"
                 ],
-                "summary": "获取班级内所有视频的观看进度",
+                "summary": "获取班级内视频的观看进度",
                 "parameters": [
                     {
                         "type": "string",
@@ -38,6 +38,19 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "班级ID",
                         "name": "class_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "all",
+                            "finished",
+                            "todo",
+                            "expired"
+                        ],
+                        "type": "string",
+                        "description": "视频状态",
+                        "name": "status",
                         "in": "path",
                         "required": true
                     }
@@ -764,6 +777,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/stat/student/overview": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistic"
+                ],
+                "summary": "获取学生总体学习统计",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/http.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/statistic.GetStudentOverviewResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/http.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/stat/student/{video_id}": {
             "get": {
                 "description": "获取学生单个视频的答题正确率、观看时长、暂停次数、薄弱知识点",
@@ -823,6 +883,32 @@ const docTemplate = `{
                         }
                     }
                 }
+            }
+        },
+        "/api/v1/user/forgotPassword": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "忘记密码",
+                "parameters": [
+                    {
+                        "description": "重置密码参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.ForgotPasswordReq"
+                        }
+                    }
+                ],
+                "responses": {}
             }
         },
         "/api/v1/user/getUser/{id}": {
@@ -1072,7 +1158,7 @@ const docTemplate = `{
         },
         "/api/v1/video/getTasks/{class_id}": {
             "get": {
-                "description": "学生获取所在班级的所有视频任务",
+                "description": "老师获取班级的所有视频任务",
                 "produces": [
                     "application/json"
                 ],
@@ -1110,6 +1196,53 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/video.GetClassVideosResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/http.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/video/my-uploaded": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "video"
+                ],
+                "summary": "获取老师上传的视频列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/http.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/video.GetMyUploadedVideosResp"
                                         }
                                     }
                                 }
@@ -1203,7 +1336,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功",
                         "schema": {
-                            "$ref": "#/definitions/http.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/http.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/video.GetTaskUploadingProcessResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
@@ -1248,6 +1393,13 @@ const docTemplate = `{
                         "type": "file",
                         "description": "视频文件",
                         "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "截止日期 格式：2025-12-31 23:59:59",
+                        "name": "deadline",
                         "in": "formData",
                         "required": true
                     }
@@ -1331,12 +1483,18 @@ const docTemplate = `{
         "behavior.VideoProgress": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deadline": {
+                    "type": "string"
+                },
                 "progress_percent": {
                     "description": "完成进度百分比",
                     "type": "integer"
                 },
                 "status": {
-                    "description": "finished | in_progress | todo",
+                    "description": "finished | todo | expired",
                     "type": "string"
                 },
                 "title": {
@@ -1648,6 +1806,23 @@ const docTemplate = `{
                 }
             }
         },
+        "statistic.GetStudentOverviewResp": {
+            "type": "object",
+            "properties": {
+                "correct_rate": {
+                    "type": "number"
+                },
+                "finished_count": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                },
+                "total_watch_time_sec": {
+                    "type": "integer"
+                }
+            }
+        },
         "statistic.GetStudentStatResp": {
             "type": "object",
             "properties": {
@@ -1663,16 +1838,34 @@ const docTemplate = `{
                     }
                 },
                 "pause_count": {
-                    "description": "暂停总时长",
+                    "description": "暂停总次数",
+                    "type": "integer"
+                },
+                "replay_count": {
+                    "description": "回看总次数",
                     "type": "integer"
                 },
                 "status": {
-                    "description": "任务完成情况：finished | in_progress | todo | expired",
+                    "description": "任务完成情况：finished | todo | expired",
                     "type": "string"
                 },
                 "time_cost": {
                     "description": "视频观看时长",
                     "type": "integer"
+                },
+                "top_pause_action": {
+                    "description": "暂停次数最高的片段（TopN）",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statistic.PauseAction"
+                    }
+                },
+                "top_replay_action": {
+                    "description": "回放次数最高的片段（TopN）",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/statistic.ReplayAction"
+                    }
                 }
             }
         },
@@ -1759,6 +1952,25 @@ const docTemplate = `{
                 }
             }
         },
+        "user.ForgotPasswordReq": {
+            "type": "object",
+            "required": [
+                "email",
+                "new_password",
+                "verify_code"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                },
+                "verify_code": {
+                    "type": "string"
+                }
+            }
+        },
         "user.LoginByPassword": {
             "type": "object",
             "properties": {
@@ -1836,6 +2048,17 @@ const docTemplate = `{
                 }
             }
         },
+        "video.GetMyUploadedVideosResp": {
+            "type": "object",
+            "properties": {
+                "videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/video.VideoTask"
+                    }
+                }
+            }
+        },
         "video.GetTaskUploadingProcessReq": {
             "type": "object",
             "required": [
@@ -1843,6 +2066,20 @@ const docTemplate = `{
             ],
             "properties": {
                 "jobID": {
+                    "type": "string"
+                }
+            }
+        },
+        "video.GetTaskUploadingProcessResp": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "type": "string"
+                },
+                "stage": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
@@ -1918,9 +2155,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
-                },
-                "knowledge_id": {
-                    "type": "string"
                 },
                 "question": {
                     "$ref": "#/definitions/question.Question"

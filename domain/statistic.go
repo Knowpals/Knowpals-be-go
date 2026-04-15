@@ -11,6 +11,9 @@ type StudentVideoStat struct {
 	CorrectRate         float64
 	TimeCost            int
 	PauseCount          int
+	ReplayCount         int
+	TopPauseAction      []ClassPauseAction
+	TopReplayAction     []ClassReplayAction
 	WeakKnowledgePoints []StudentWeakKnowledgePoint
 }
 
@@ -48,3 +51,9 @@ type ClassVideoStat struct {
 	TopReplayAction []ClassReplayAction
 }
 
+type StudentOverviewStat struct {
+	TotalWatchTimeSec int
+	FinishedCount     int
+	TotalCount        int
+	CorrectRate       float64
+}

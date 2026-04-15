@@ -13,7 +13,7 @@ import (
 type BehaviorDao interface {
 	RecordAction(ctx context.Context, studentID uint, action domain.WatchAction) error
 	UpdateProgress(ctx context.Context, studentID uint, progress domain.WatchProgress, status string) error
-	GetClassVideoProgress(ctx context.Context, studentID uint, classID uint) ([]domain.VideoProgress, error)
+	GetClassVideoProgress(ctx context.Context, studentID uint, classID uint, status string) ([]domain.VideoProgress, error)
 }
 
 type behaviorDao struct {
@@ -115,11 +115,13 @@ func (bd *behaviorDao) UpdateProgress(ctx context.Context, studentID uint, progr
 	})
 }
 
-func (bd *behaviorDao) GetClassVideoProgress(ctx context.Context, studentID uint, classID uint) ([]domain.VideoProgress, error) {
+func (bd *behaviorDao) GetClassVideoProgress(ctx context.Context, studentID uint, classID uint, status string) ([]domain.VideoProgress, error) {
 	// join class videos + videos + student's progress
 	type row struct {
 		VideoID       uint
 		Title         string
+		Deadline      *time.Time
+		CreatedAt     time.Time
 		Duration      int
 		Status        *string
 		MaxSec        *int
@@ -131,6 +133,8 @@ func (bd *behaviorDao) GetClassVideoProgress(ctx context.Context, studentID uint
 		Select(`vtc.video_id as video_id,
 		        v.title as title,
 		        v.duration as duration,
+				v.deadline as deadline,
+				v.created_at as created_at,
 		        p.status as status,
 		        p.max_sec as max_sec,
 		        p.watch_duration as watch_duration`).
@@ -145,10 +149,20 @@ func (bd *behaviorDao) GetClassVideoProgress(ctx context.Context, studentID uint
 
 	out := make([]domain.VideoProgress, 0, len(rows))
 	for _, r := range rows {
-		st := "todo"
+		var st string
 		if r.Status != nil && *r.Status != "" {
 			st = *r.Status
+		} else if r.Deadline != nil && time.Now().After(*r.Deadline) {
+			st = "expired"
+		} else {
+			st = "todo"
 		}
+
+		//如果要查全部任务就直接全部返回，否则就判断status是不是等于要查询的status，用于筛选
+		if status != "all" && st != status {
+			continue
+		}
+
 		maxSec := 0
 		if r.MaxSec != nil {
 			maxSec = *r.MaxSec
@@ -167,6 +181,8 @@ func (bd *behaviorDao) GetClassVideoProgress(ctx context.Context, studentID uint
 			Status:          st,
 			ProgressPercent: percent,
 			WatchTime:       watchDur,
+			Deadline:        r.Deadline,
+			CreatedAt:       r.CreatedAt,
 		})
 	}
 	return out, nil

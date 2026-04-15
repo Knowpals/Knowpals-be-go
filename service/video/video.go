@@ -13,6 +13,7 @@ type VideoService interface {
 	GetVideoDetail(ctx context.Context, videoID uint) (domain.Video, []domain.Segment, []domain.KnowledgePoint, []domain.Question, map[uint][]domain.KnowledgePoint, error)
 	AssignVideoToClasses(ctx context.Context, videoID uint, classIDs []uint) error
 	ListClassVideoTasks(ctx context.Context, classID uint) ([]domain.Video, error)
+	ListMyUploadedVideos(ctx context.Context, teacherID uint) ([]domain.Video, error)
 }
 
 type videoService struct {
@@ -65,4 +66,8 @@ func (vs *videoService) AssignVideoToClasses(ctx context.Context, videoID uint, 
 
 func (vs *videoService) ListClassVideoTasks(ctx context.Context, classID uint) ([]domain.Video, error) {
 	return vs.dao.ListClassVideoTasks(ctx, classID)
+}
+
+func (vs *videoService) ListMyUploadedVideos(ctx context.Context, teacherID uint) ([]domain.Video, error) {
+	return vs.dao.ListVideosByTeacher(ctx, teacherID)
 }
