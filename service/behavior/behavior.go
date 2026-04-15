@@ -13,6 +13,7 @@ type BehaviorService interface {
 	RecordAction(ctx context.Context, studentID uint, action domain.WatchAction) error
 	UpdateProgress(ctx context.Context, studentID uint, progress domain.WatchProgress) error
 	GetClassVideoProgress(ctx context.Context, studentID uint, classID uint, status string) ([]domain.VideoProgress, error)
+	GetMyUnfinishedTasks(ctx context.Context, studentID uint) ([]domain.UnfinishedTask, error)
 }
 
 type behaviorService struct {
@@ -55,6 +56,14 @@ func (bs *behaviorService) GetClassVideoProgress(ctx context.Context, studentID 
 	out, err := bs.behaviorDao.GetClassVideoProgress(ctx, studentID, classID, status)
 	if err != nil {
 		return nil, errors2.GetClassVideoProgressError(err)
+	}
+	return out, nil
+}
+
+func (bs *behaviorService) GetMyUnfinishedTasks(ctx context.Context, studentID uint) ([]domain.UnfinishedTask, error) {
+	out, err := bs.behaviorDao.ListMyUnfinishedTasks(ctx, studentID)
+	if err != nil {
+		return nil, errors2.GetMyUnfinishedTasksError(err)
 	}
 	return out, nil
 }

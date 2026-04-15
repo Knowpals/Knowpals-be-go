@@ -78,6 +78,53 @@
                 }
             }
         },
+        "/api/v1/behavior/my/unfinished": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "behavior"
+                ],
+                "summary": "获取学生未完成任务列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer",
+                        "description": "Bearer Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/http.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/behavior.GetMyUnfinishedTasksResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/http.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/behavior/record": {
             "post": {
                 "description": "记录暂停、回放、播放等行为及时长",
@@ -1440,6 +1487,17 @@
                 }
             }
         },
+        "behavior.GetMyUnfinishedTasksResp": {
+            "type": "object",
+            "properties": {
+                "tasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/behavior.UnfinishedTask"
+                    }
+                }
+            }
+        },
         "behavior.RecordActionReq": {
             "type": "object",
             "properties": {
@@ -1452,6 +1510,33 @@
                 },
                 "segment_id": {
                     "type": "integer"
+                },
+                "video_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "behavior.UnfinishedTask": {
+            "type": "object",
+            "properties": {
+                "class_id": {
+                    "type": "integer"
+                },
+                "class_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deadline": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "todo|expired",
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 },
                 "video_id": {
                     "type": "integer"

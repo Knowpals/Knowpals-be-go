@@ -23,3 +23,13 @@ type VideoProgress struct {
 	Deadline        *time.Time
 	CreatedAt       time.Time
 }
+
+type UnfinishedTask struct {
+	ClassID   uint
+	ClassName string
+	VideoID   uint
+	Title     string
+	Status   string // todo|expired
+	Deadline  *time.Time
+	CreatedAt time.Time
+}

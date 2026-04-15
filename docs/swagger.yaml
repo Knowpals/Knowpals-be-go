@@ -6,6 +6,13 @@ definitions:
           $ref: '#/definitions/behavior.VideoProgress'
         type: array
     type: object
+  behavior.GetMyUnfinishedTasksResp:
+    properties:
+      tasks:
+        items:
+          $ref: '#/definitions/behavior.UnfinishedTask'
+        type: array
+    type: object
   behavior.RecordActionReq:
     properties:
       duration:
@@ -15,6 +22,24 @@ definitions:
         type: string
       segment_id:
         type: integer
+      video_id:
+        type: integer
+    type: object
+  behavior.UnfinishedTask:
+    properties:
+      class_id:
+        type: integer
+      class_name:
+        type: string
+      created_at:
+        type: string
+      deadline:
+        type: string
+      status:
+        description: todo|expired
+        type: string
+      title:
+        type: string
       video_id:
         type: integer
     type: object
@@ -552,6 +577,34 @@ paths:
           schema:
             $ref: '#/definitions/http.Response'
       summary: 获取班级内视频的观看进度
+      tags:
+      - behavior
+  /api/v1/behavior/my/unfinished:
+    get:
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/behavior.GetMyUnfinishedTasksResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取学生未完成任务列表
       tags:
       - behavior
   /api/v1/behavior/record:

@@ -18,6 +18,8 @@ type BehaviorController interface {
 	UpdateVideoProgress(c *gin.Context, req behavior.UpdateProgressReq, claim ijwt.UserClaim) (http.Response, error)
 	// GetClassVideoProgress 获取学生班级内所有视频观看进度
 	GetClassVideoProgress(c *gin.Context, req behavior.GetClassVideoProgressReq, claim ijwt.UserClaim) (http.Response, error)
+	// GetMyUnfinishedTasks 获取学生所有未完成任务
+	GetMyUnfinishedTasks(c *gin.Context, claim ijwt.UserClaim) (http.Response, error)
 }
 
 type behaviorController struct {
@@ -113,4 +115,36 @@ func (bc *behaviorController) GetClassVideoProgress(c *gin.Context, req behavior
 		})
 	}
 	return http.Success(behavior.GetClassVideoProgressResp{ProgressList: out}), nil
+}
+
+// GetMyUnfinishedTasks 获取学生所有未完成任务（包含班级信息）
+// @Summary 获取学生未完成任务列表
+// @Tags behavior
+// @Produce json
+// @Param Authorization header string true "Bearer Token" default(Bearer )
+// @Success 200 {object} http.Response{data=behavior.GetMyUnfinishedTasksResp} "成功"
+// @Failure 401 {object} http.Response "未授权"
+// @Router /api/v1/behavior/my/unfinished [get]
+func (bc *behaviorController) GetMyUnfinishedTasks(c *gin.Context, claim ijwt.UserClaim) (http.Response, error) {
+	if domain.RoleType(claim.Role) != domain.Role_Student {
+		return http.Response{}, errors.New("无权限")
+	}
+	tasks, err := bc.svc.GetMyUnfinishedTasks(c, claim.ID)
+	if err != nil {
+		return http.Response{}, err
+	}
+
+	out := make([]behavior.UnfinishedTask, 0, len(tasks))
+	for _, t := range tasks {
+		out = append(out, behavior.UnfinishedTask{
+			ClassID:   t.ClassID,
+			ClassName: t.ClassName,
+			VideoID:   t.VideoID,
+			Title:     t.Title,
+			Status:    t.Status,
+			Deadline:  t.Deadline,
+			CreatedAt: t.CreatedAt,
+		})
+	}
+	return http.Success(behavior.GetMyUnfinishedTasksResp{Tasks: out}), nil
 }

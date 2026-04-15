@@ -32,3 +32,17 @@ type GetClassVideoProgressReq struct {
 type GetClassVideoProgressResp struct {
 	ProgressList []VideoProgress `json:"progress_list"`
 }
+
+type UnfinishedTask struct {
+	ClassID   uint       `json:"class_id"`
+	ClassName string     `json:"class_name"`
+	VideoID   uint       `json:"video_id"`
+	Title     string     `json:"title"`
+	Status    string     `json:"status"` // todo|expired
+	Deadline  *time.Time `json:"deadline"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+type GetMyUnfinishedTasksResp struct {
+	Tasks []UnfinishedTask `json:"tasks"`
+}

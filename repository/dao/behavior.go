@@ -14,6 +14,7 @@ type BehaviorDao interface {
 	RecordAction(ctx context.Context, studentID uint, action domain.WatchAction) error
 	UpdateProgress(ctx context.Context, studentID uint, progress domain.WatchProgress, status string) error
 	GetClassVideoProgress(ctx context.Context, studentID uint, classID uint, status string) ([]domain.VideoProgress, error)
+	ListMyUnfinishedTasks(ctx context.Context, studentID uint) ([]domain.UnfinishedTask, error)
 }
 
 type behaviorDao struct {
@@ -183,6 +184,70 @@ func (bd *behaviorDao) GetClassVideoProgress(ctx context.Context, studentID uint
 			WatchTime:       watchDur,
 			Deadline:        r.Deadline,
 			CreatedAt:       r.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (bd *behaviorDao) ListMyUnfinishedTasks(ctx context.Context, studentID uint) ([]domain.UnfinishedTask, error) {
+	// student classes -> class videos -> video info + student's progress(status)
+	type row struct {
+		ClassID    uint
+		ClassName  string
+		VideoID    uint
+		Title      string
+		Deadline   *time.Time
+		CreatedAt  time.Time
+		Status     *string
+		MaxSec     *int
+		Duration   int
+		UpdatedAt  *time.Time
+	}
+	var rows []row
+	if err := bd.db.WithContext(ctx).
+		Table("class_students cs").
+		Select(`cs.class_id as class_id,
+		        c.class_name as class_name,
+		        v.id as video_id,
+		        v.title as title,
+		        v.deadline as deadline,
+		        v.created_at as created_at,
+		        v.duration as duration,
+		        p.status as status,
+		        p.max_sec as max_sec,
+		        p.updated_at as updated_at`).
+		Joins("join classes c on c.id = cs.class_id").
+		Joins("join video_to_class vtc on vtc.class_id = cs.class_id").
+		Joins("join videos v on v.id = vtc.video_id").
+		Joins("left join student_video_progresses p on p.video_id = v.id and p.user_id = ?", studentID).
+		Where("cs.student_id = ?", studentID).
+		Order("cs.class_id asc, v.deadline asc, v.id asc").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	out := make([]domain.UnfinishedTask, 0, len(rows))
+	for _, r := range rows {
+		// 计算 status：progress 有则用；没有则根据 deadline 判断 todo/expired
+		st := ""
+		if r.Status != nil && *r.Status != "" {
+			st = *r.Status
+		} else if r.Deadline != nil && time.Now().After(*r.Deadline) {
+			st = "expired"
+		} else {
+			st = "todo"
+		}
+		if st == "finished" {
+			continue
+		}
+		out = append(out, domain.UnfinishedTask{
+			ClassID:   r.ClassID,
+			ClassName: r.ClassName,
+			VideoID:   r.VideoID,
+			Title:     r.Title,
+			Status:    st,
+			Deadline:  r.Deadline,
+			CreatedAt: r.CreatedAt,
 		})
 	}
 	return out, nil
