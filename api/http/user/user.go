@@ -43,3 +43,10 @@ type ForgotPasswordReq struct {
 	VerifyCode  string `json:"verify_code" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required"`
 }
+
+type GetUserInfoResp struct {
+	Username    string `json:"username"`
+	Email       string `json:"email"`
+	CreatedAt   string `json:"created_at"`
+	RegisterDay int    `json:"register_day"`
+}

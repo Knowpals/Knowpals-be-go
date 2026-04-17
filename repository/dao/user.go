@@ -13,7 +13,7 @@ import (
 type UserDao interface {
 	AddUser(ctx context.Context, user *domain.User) error
 	GetUserByID(ctx context.Context, id uint) (domain.User, error)
-	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (domain.User, bool, error)
 	DeleteUser(ctx context.Context, id string) error
 	UpdatePasswordByEmail(ctx context.Context, email string, newPassword string) error
 }
@@ -69,24 +69,28 @@ func (ud *userDao) GetUserByID(ctx context.Context, id uint) (domain.User, error
 		return domain.User{}, err
 	}
 	return domain.User{
-		ID:       userModel.ID,
-		Username: userModel.Username,
-		Password: userModel.Password,
-		Email:    userModel.Email,
-		Role:     role,
+		ID:        userModel.ID,
+		Username:  userModel.Username,
+		Password:  userModel.Password,
+		Email:     userModel.Email,
+		Role:      role,
+		CreatedAt: userModel.CreatedAt,
 	}, nil
 }
 
-func (ud *userDao) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
+func (ud *userDao) GetUserByEmail(ctx context.Context, email string) (domain.User, bool, error) {
 	var userModel model.User
 	err := ud.db.WithContext(ctx).Where("email=?", email).First(&userModel).Error
 	if err != nil {
-		return domain.User{}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domain.User{}, false, nil
+		}
+		return domain.User{}, false, err
 	}
 	role := domain.RoleType(userModel.Role)
 	if !role.IsValid() {
 		err = errors.New(fmt.Sprintf("角色类型不合法：%s", role))
-		return domain.User{}, err
+		return domain.User{}, false, err
 	}
 	return domain.User{
 		ID:       userModel.ID,
@@ -94,7 +98,7 @@ func (ud *userDao) GetUserByEmail(ctx context.Context, email string) (domain.Use
 		Email:    userModel.Email,
 		Password: userModel.Password,
 		Role:     role,
-	}, nil
+	}, true, nil
 }
 
 func (ud *userDao) DeleteUser(ctx context.Context, id string) error {

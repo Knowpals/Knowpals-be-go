@@ -148,6 +148,11 @@ func (vc *videoController) GetVideoDetail(c *gin.Context, req video.GetVideoDeta
 		return http.Response{}, err
 	}
 
+	url, err := vc.cos.SignUrl(c, v.FileKey)
+	if err != nil {
+		return http.Response{}, errors.UploadVideoError(err)
+	}
+
 	kpResp := make([]video.KnowledgePointResp, 0, len(kps))
 	for _, kp := range kps {
 		kpResp = append(kpResp, video.KnowledgePointResp{
@@ -207,6 +212,7 @@ func (vc *videoController) GetVideoDetail(c *gin.Context, req video.GetVideoDeta
 		VideoID:   v.ID,
 		Title:     v.Title,
 		Duration:  v.Duration,
+		Url:       url,
 		Segments:  segResp,
 		Knowledge: kpResp,
 		Questions: quizResp,

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Knowpals/Knowpals-be-go/domain"
+	"github.com/Knowpals/Knowpals-be-go/errors"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
 )
 
@@ -35,15 +36,15 @@ func (vs *videoService) GetVideo(ctx context.Context, videoID uint) (domain.Vide
 func (vs *videoService) GetVideoDetail(ctx context.Context, videoID uint) (domain.Video, []domain.Segment, []domain.KnowledgePoint, []domain.Question, map[uint][]domain.KnowledgePoint, error) {
 	v, err := vs.dao.GetVideoByID(ctx, videoID)
 	if err != nil {
-		return domain.Video{}, nil, nil, nil, nil, err
+		return domain.Video{}, nil, nil, nil, nil, errors.UploadVideoError(err)
 	}
 	segs, err := vs.dao.ListSegmentsByVideoID(ctx, videoID)
 	if err != nil {
-		return domain.Video{}, nil, nil, nil, nil, err
+		return domain.Video{}, nil, nil, nil, nil, errors.UploadVideoError(err)
 	}
 	kps, err := vs.dao.ListKnowledgePointsByVideoID(ctx, videoID)
 	if err != nil {
-		return domain.Video{}, nil, nil, nil, nil, err
+		return domain.Video{}, nil, nil, nil, nil, errors.UploadVideoError(err)
 	}
 	qs, err := vs.dao.ListQuestionsByVideoID(ctx, videoID)
 	if err != nil {
@@ -55,7 +56,7 @@ func (vs *videoService) GetVideoDetail(ctx context.Context, videoID uint) (domai
 	}
 	qkps, err := vs.dao.ListQuestionKnowledge(ctx, qids)
 	if err != nil {
-		return domain.Video{}, nil, nil, nil, nil, err
+		return domain.Video{}, nil, nil, nil, nil, errors.UploadVideoError(err)
 	}
 	return v, segs, kps, qs, qkps, nil
 }

@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type RoleType string
 
 const (
@@ -12,9 +14,10 @@ func (r RoleType) IsValid() bool {
 }
 
 type User struct {
-	ID       uint
-	Username string
-	Email    string
-	Password string
-	Role     RoleType
+	ID        uint
+	Username  string
+	Email     string
+	Password  string
+	Role      RoleType
+	CreatedAt time.Time
 }

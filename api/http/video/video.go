@@ -36,6 +36,7 @@ type GetVideoDetailResp struct {
 	VideoID   uint                 `json:"video_id"`
 	Title     string               `json:"title"`
 	Duration  int                  `json:"duration"`
+	Url       string               `json:"url"`
 	Segments  []Segment            `json:"segments"`
 	Knowledge []KnowledgePointResp `json:"knowledge"`
 	Questions []question.Question  `json:"questions"`

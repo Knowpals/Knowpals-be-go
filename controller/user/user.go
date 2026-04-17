@@ -1,12 +1,15 @@
 package user
 
 import (
+	"time"
+
 	"github.com/Knowpals/Knowpals-be-go/api/http"
 	"github.com/Knowpals/Knowpals-be-go/api/http/user"
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	"github.com/Knowpals/Knowpals-be-go/errors"
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	user2 "github.com/Knowpals/Knowpals-be-go/service/user"
+	"github.com/Knowpals/Knowpals-be-go/tool"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,10 +22,10 @@ type UserController interface {
 	LoginByPassword(c *gin.Context, request user.LoginByPassword) (http.Response, error)
 	// LoginByVerifyCode 验证码登录
 	LoginByVerifyCode(c *gin.Context, request user.LoginByVerifyCode) (http.Response, error)
-	// GetUserByID 通过id查找用户
-	GetUserByID(c *gin.Context, request user.GetUserRequest) (http.Response, error)
 	// ForgotPassword 忘记密码重置
 	ForgotPassword(c *gin.Context, request user.ForgotPasswordReq) (http.Response, error)
+	// GetUserInfo 获取用户个人信息
+	GetUserInfo(c *gin.Context, claim ijwt.UserClaim) (http.Response, error)
 }
 
 type userController struct {
@@ -132,24 +135,6 @@ func (uc *userController) LoginByVerifyCode(c *gin.Context, request user.LoginBy
 	return http.Success(resp), nil
 }
 
-// GetUserByID 根据id查询用户
-//
-//		@Summary		根据id查询用户
-//		@Tags			user
-//		@Accept			json
-//		@Produce		json
-//	 	@Param 			id 		path 		int 		true 		"用户ID"
-//		@Router			/api/v1/user/getUser/{id} [get]
-//		@Security 		ApiKeyAuth
-func (uc *userController) GetUserByID(c *gin.Context, request user.GetUserRequest) (http.Response, error) {
-	u, err := uc.service.GetUserByID(c, request.ID)
-	if err != nil {
-		return http.Response{}, errors.GetUserError(err)
-	}
-
-	return http.Success(u), nil
-}
-
 // ForgotPassword 忘记密码重置
 // @Summary 忘记密码
 // @Tags user
@@ -162,4 +147,32 @@ func (uc *userController) ForgotPassword(c *gin.Context, request user.ForgotPass
 		return http.Response{}, err
 	}
 	return http.Success(nil), nil
+}
+
+// GetUserInfo  查询用户个人信息
+// @Summary		查询用户个人信息
+// @Tags		user
+// @Produce		json
+// @Param Authorization header string true "Bearer Token" default(Bearer )
+// @Success 200 {object} http.Response{data=user.GetUserInfoResp} "成功"
+// @Failure 401 {object} http.Response "未授权"
+// @Router	/api/v1/user/getUserInfo [get]
+func (uc *userController) GetUserInfo(c *gin.Context, claim ijwt.UserClaim) (http.Response, error) {
+	userID := claim.ID
+	u, err := uc.service.GetUserByID(c, userID)
+	if err != nil {
+		return http.Response{}, err
+	}
+
+	days := int(time.Now().Sub(u.CreatedAt).Hours() / 24)
+
+	resp := user.GetUserInfoResp{
+		Username:    u.Username,
+		Email:       u.Email,
+		CreatedAt:   tool.ParseTimeToString(u.CreatedAt),
+		RegisterDay: days,
+	}
+
+	return http.Success(resp), nil
+
 }

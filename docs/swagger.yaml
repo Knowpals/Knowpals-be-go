@@ -374,6 +374,17 @@ definitions:
     - new_password
     - verify_code
     type: object
+  user.GetUserInfoResp:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      register_day:
+        type: integer
+      username:
+        type: string
+    type: object
   user.LoginByPassword:
     properties:
       email:
@@ -463,6 +474,8 @@ definitions:
           $ref: '#/definitions/video.Segment'
         type: array
       title:
+        type: string
+      url:
         type: string
       video_id:
         type: integer
@@ -1126,22 +1139,32 @@ paths:
       summary: 忘记密码
       tags:
       - user
-  /api/v1/user/getUser/{id}:
+  /api/v1/user/getUserInfo:
     get:
-      consumes:
-      - application/json
       parameters:
-      - description: 用户ID
-        in: path
-        name: id
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
-      responses: {}
-      security:
-      - ApiKeyAuth: []
-      summary: 根据id查询用户
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.GetUserInfoResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 查询用户个人信息
       tags:
       - user
   /api/v1/user/loginByCode:

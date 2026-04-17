@@ -41,7 +41,7 @@ func (us *userService) GetUserByID(ctx context.Context, id uint) (domain.User, e
 	user, err := us.dao.GetUserByID(ctx, id)
 	if err != nil {
 		otelx.RecordError(ctx, err)
-		return domain.User{}, err
+		return domain.User{}, errors.GetUserError(err)
 	}
 	return user, nil
 }
@@ -72,6 +72,13 @@ func (us *userService) Register(ctx context.Context, user *domain.User, code str
 	if c != code {
 		return errors.VerifyCodeError(errors1.New("验证码校验错误"))
 	}
+	_, isExist, err := us.dao.GetUserByEmail(ctx, user.Email)
+	if err != nil {
+		return errors.RegisterUserError(err)
+	}
+	if isExist {
+		return errors.RegisterUserError(errors1.New("已有账号，不可重复注册"))
+	}
 	//写入数据库，注册成功
 	err = us.dao.AddUser(ctx, user)
 	if err != nil {
@@ -81,9 +88,13 @@ func (us *userService) Register(ctx context.Context, user *domain.User, code str
 }
 
 func (us *userService) LoginByPassword(ctx context.Context, email string, password string) (domain.User, error) {
-	u, err := us.dao.GetUserByEmail(ctx, email)
+	u, isExist, err := us.dao.GetUserByEmail(ctx, email)
 	if err != nil {
 		return domain.User{}, errors.LoginError(err)
+	}
+
+	if !isExist {
+		return domain.User{}, errors.LoginError(errors1.New("用户不存在"))
 	}
 
 	if u.Password != password {
@@ -91,14 +102,16 @@ func (us *userService) LoginByPassword(ctx context.Context, email string, passwo
 	}
 
 	return u, nil
-
 }
 
 func (us *userService) LoginByVerifyCode(ctx context.Context, email string, code string) (domain.User, error) {
 	//验证是否注册过，存在此用户
-	u, err := us.dao.GetUserByEmail(ctx, email)
+	u, isExist, err := us.dao.GetUserByEmail(ctx, email)
 	if err != nil {
 		return domain.User{}, errors.LoginError(err)
+	}
+	if !isExist {
+		return domain.User{}, errors.LoginError(errors1.New("用户不存在"))
 	}
 
 	c, err := us.cache.GetCode(ctx, email)
@@ -123,9 +136,12 @@ func (us *userService) ForgotPassword(ctx context.Context, email string, code st
 		return errors.ForgotPasswordError(errors1.New("验证码错误"))
 	}
 	// 确认用户存在
-	_, err = us.dao.GetUserByEmail(ctx, email)
+	_, isExist, err := us.dao.GetUserByEmail(ctx, email)
 	if err != nil {
 		return errors.ForgotPasswordError(err)
+	}
+	if !isExist {
+		return errors.ForgotPasswordError(errors1.New("用户不存在"))
 	}
 	if err := us.dao.UpdatePasswordByEmail(ctx, email, newPassword); err != nil {
 		return errors.ForgotPasswordError(err)
