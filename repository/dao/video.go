@@ -14,6 +14,8 @@ import (
 type VideoDao interface {
 	SaveVideo(ctx context.Context, video domain.Video) (uint, error)
 	GetVideoByID(ctx context.Context, id uint) (domain.Video, error)
+	GetVideoReviewStatus(ctx context.Context, id uint) (string, error)
+	SetVideoReviewStatus(ctx context.Context, id uint, status string) error
 	UpdateVideo(ctx context.Context, id uint, updates map[string]interface{}) error
 	ListSegmentsByVideoID(ctx context.Context, videoID uint) ([]domain.Segment, error)
 	ListKnowledgePointsByVideoID(ctx context.Context, videoID uint) ([]domain.KnowledgePoint, error)
@@ -35,10 +37,11 @@ func NewVideoDao(db *gorm.DB, log *zap.Logger) VideoDao {
 
 func (vd *videoDao) SaveVideo(ctx context.Context, video domain.Video) (uint, error) {
 	videoModel := model.Video{
-		TeacherID: video.TeacherID,
-		Title:     video.Title,
-		FileKey:   video.FileKey,
-		Deadline:  video.Deadline,
+		TeacherID:    video.TeacherID,
+		Title:        video.Title,
+		FileKey:      video.FileKey,
+		Deadline:     video.Deadline,
+		ReviewStatus: "processing",
 	}
 	if err := vd.db.WithContext(ctx).Create(&videoModel).Error; err != nil {
 		return 0, err
@@ -52,13 +55,37 @@ func (vd *videoDao) GetVideoByID(ctx context.Context, id uint) (domain.Video, er
 		return domain.Video{}, err
 	}
 	return domain.Video{
-		ID:        m.ID,
-		TeacherID: m.TeacherID,
-		FileKey:   m.FileKey,
-		Title:     m.Title,
-		Duration:  m.Duration,
-		Deadline:  m.Deadline,
+		ID:           m.ID,
+		TeacherID:    m.TeacherID,
+		FileKey:      m.FileKey,
+		Title:        m.Title,
+		Duration:     m.Duration,
+		ReviewStatus: m.ReviewStatus,
+		ReviewedAt:   m.ReviewedAt,
+		PublishedAt:  m.PublishedAt,
+		Deadline:     m.Deadline,
 	}, nil
+}
+
+func (vd *videoDao) GetVideoReviewStatus(ctx context.Context, id uint) (string, error) {
+	var st struct {
+		ReviewStatus string `gorm:"column:review_status"`
+	}
+	if err := vd.db.WithContext(ctx).
+		Model(&model.Video{}).
+		Select("review_status").
+		Where("id = ?", id).
+		Scan(&st).Error; err != nil {
+		return "", err
+	}
+	return st.ReviewStatus, nil
+}
+
+func (vd *videoDao) SetVideoReviewStatus(ctx context.Context, id uint, status string) error {
+	return vd.db.WithContext(ctx).
+		Model(&model.Video{}).
+		Where("id = ?", id).
+		Update("review_status", status).Error
 }
 
 func (vd *videoDao) UpdateVideo(ctx context.Context, id uint, updates map[string]interface{}) error {

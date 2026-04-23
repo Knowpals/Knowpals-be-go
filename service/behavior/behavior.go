@@ -7,6 +7,7 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	errors2 "github.com/Knowpals/Knowpals-be-go/errors"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
+	"github.com/Knowpals/Knowpals-be-go/service/agentclient"
 )
 
 type BehaviorService interface {
@@ -19,16 +20,33 @@ type BehaviorService interface {
 type behaviorService struct {
 	behaviorDao dao.BehaviorDao
 	videoDao    dao.VideoDao
+	mem         agentclient.MemoryWriter
+	segmentDao  dao.SegmentDao
 }
 
-func NewBehaviorService(behaviorDao dao.BehaviorDao, videoDao dao.VideoDao) BehaviorService {
-	return &behaviorService{behaviorDao: behaviorDao, videoDao: videoDao}
+func NewBehaviorService(behaviorDao dao.BehaviorDao, videoDao dao.VideoDao, segmentDao dao.SegmentDao, mem agentclient.MemoryWriter) BehaviorService {
+	return &behaviorService{behaviorDao: behaviorDao, videoDao: videoDao, segmentDao: segmentDao, mem: mem}
 }
 
 func (bs *behaviorService) RecordAction(ctx context.Context, studentID uint, action domain.WatchAction) error {
 	err := bs.behaviorDao.RecordAction(ctx, studentID, action)
 	if err != nil {
 		return errors2.RecordActionError(err)
+	}
+	if bs.mem != nil {
+		// best-effort：写入短期记忆失败不影响主流程
+		kid := ""
+		if bs.segmentDao != nil && action.SegmentID != 0 {
+			kid, _ = bs.segmentDao.GetKnowledgeIDBySegmentPK(ctx, action.SegmentID)
+		}
+		if kid != "" {
+			if action.Event == "pause" {
+				_ = bs.mem.WritePause(ctx, studentID, kid, action.VideoID, action.SegmentID)
+			}
+			if action.Event == "replay" {
+				_ = bs.mem.WriteReplay(ctx, studentID, kid, action.VideoID, action.SegmentID)
+			}
+		}
 	}
 	return nil
 }

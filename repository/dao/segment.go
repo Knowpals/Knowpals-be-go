@@ -14,6 +14,9 @@ type SegmentDao interface {
 	BatchUpsertSegments(context.Context, []domain.Segment) error
 	UpsertKnowledgeSegmentMappings(context.Context, []domain.Segment) error
 	BatchGetSegmentBySegmentID(context.Context, []string) (map[string]domain.Segment, error)
+	GetKnowledgeIDBySegmentPK(context.Context, uint) (string, error)
+	FindSegmentPKByVideoAndTimeMs(ctx context.Context, videoID uint, timeMs int64) (*uint, error)
+	GetKnowledgePKsBySegmentPK(ctx context.Context, segmentPK uint) ([]uint, error)
 }
 
 type segmentDao struct {
@@ -183,4 +186,60 @@ func (sd *segmentDao) BatchGetSegmentBySegmentID(ctx context.Context, segmentID 
 	}
 
 	return out, nil
+}
+
+func (sd *segmentDao) GetKnowledgeIDBySegmentPK(ctx context.Context, segmentPK uint) (string, error) {
+	if segmentPK == 0 {
+		return "", nil
+	}
+	type row struct {
+		KnowledgeID string `gorm:"column:knowledge_id"`
+	}
+	var r row
+	err := sd.db.WithContext(ctx).
+		Table("knowledge_segment_mappings ksm").
+		Select("kp.knowledge_id as knowledge_id").
+		Joins("join knowledge_points kp on kp.id = ksm.knowledge_id").
+		Where("ksm.segment_id = ?", segmentPK).
+		Order("ksm.id asc").
+		Limit(1).
+		Scan(&r).Error
+	if err != nil {
+		return "", err
+	}
+	return r.KnowledgeID, nil
+}
+
+func (sd *segmentDao) FindSegmentPKByVideoAndTimeMs(ctx context.Context, videoID uint, timeMs int64) (*uint, error) {
+	if videoID == 0 {
+		return nil, nil
+	}
+	sec := int(timeMs / 1000)
+	var seg model.Segment
+	err := sd.db.WithContext(ctx).
+		Where("video_id = ? AND start <= ? AND end >= ?", videoID, sec, sec).
+		Order("start asc").
+		First(&seg).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	id := seg.ID
+	return &id, nil
+}
+
+func (sd *segmentDao) GetKnowledgePKsBySegmentPK(ctx context.Context, segmentPK uint) ([]uint, error) {
+	if segmentPK == 0 {
+		return []uint{}, nil
+	}
+	var ids []uint
+	if err := sd.db.WithContext(ctx).
+		Model(&model.KnowledgeSegmentMapping{}).
+		Where("segment_id = ?", segmentPK).
+		Pluck("knowledge_id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
 }

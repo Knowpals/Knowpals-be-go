@@ -2,6 +2,7 @@ package video
 
 import (
 	errors1 "errors"
+	"fmt"
 	"mime/multipart"
 
 	"github.com/Knowpals/Knowpals-be-go/api/http"
@@ -75,7 +76,7 @@ func (vc *videoController) UploadVideo(c *gin.Context, req video.UploadVideoReq,
 	}
 	deadline, err := tool.ParseStringToTime(req.Deadline)
 	if err != nil {
-		return http.Response{}, errors.UploadVideoError(errors1.New("截止日期格式错误"))
+		return http.Response{}, errors.UploadVideoError(errors1.New(fmt.Sprintf("截止日期格式错误:%v", err)))
 	}
 	videoID, err := vc.vs.SaveVideo(c, domain.Video{Title: req.Title, TeacherID: claim.ID, FileKey: key, Deadline: deadline})
 	if err != nil {
@@ -143,6 +144,20 @@ func (vc *videoController) GetTaskUploadingProcess(c *gin.Context, req video.Get
 // @Failure 401 {object} http.Response "未授权"
 // @Router	/api/v1/video/getDetail/{video_id} [get]
 func (vc *videoController) GetVideoDetail(c *gin.Context, req video.GetVideoDetailReq) (http.Response, error) {
+	claim, err := ginx.GetClaim(c)
+	if err != nil {
+		return http.Response{}, errors.GetVideoDetailError(err)
+	}
+	if domain.RoleType(claim.Role) == domain.Role_Student {
+		v0, err := vc.vs.GetVideo(c, req.VideoID)
+		if err != nil {
+			return http.Response{}, errors.GetVideoDetailError(err)
+		}
+		if v0.ReviewStatus != "published" {
+			return http.Response{}, errors.VideoNotPublishedError(errors1.New("未发布"))
+		}
+	}
+
 	v, segs, kps, qs, qkps, err := vc.vs.GetVideoDetail(c, req.VideoID)
 	if err != nil {
 		return http.Response{}, err

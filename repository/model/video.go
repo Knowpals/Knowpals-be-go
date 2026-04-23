@@ -13,6 +13,9 @@ type Video struct {
 	TeacherID uint      `gorm:"column:teacher_id;type:bigint;not null"`
 	Duration  int       `gorm:"column:duration;not null"`
 	Deadline  time.Time `gorm:"column:deadline;type:datetime"`
+	ReviewStatus string     `gorm:"column:review_status;type:enum('processing','reviewing','published');not null;default 'processing';index"`
+	ReviewedAt   *time.Time `gorm:"column:reviewed_at;type:datetime"`
+	PublishedAt  *time.Time `gorm:"column:published_at;type:datetime"`
 }
 
 func (Video) TableName() string {

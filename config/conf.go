@@ -9,6 +9,7 @@ type Config struct {
 	Smtp  *SmtpConf  `yaml:"smtp"`
 	COS   *COSConf   `yaml:"cos"`
 	Kafka *KafkaConf `yaml:"kafka"`
+	Grpc  *GrpcConf  `yaml:"grpc"`
 }
 
 type MysqlConf struct {
@@ -43,14 +44,19 @@ type SmtpConf struct {
 }
 
 type COSConf struct {
-	SecretID  string `yaml:"secretID"`
-	SecretKey string `yaml:"secretKey"`
-	URL       string `yaml:"url"`
+	SecretID    string `yaml:"secretID"`
+	SecretKey   string `yaml:"secretKey"`
+	URL         string `yaml:"url"`
+	InternalUrl string `yaml:"internalUrl"`
 }
 
 type KafkaConf struct {
 	Addrs         []string `yaml:"addrs"`
 	ConsumerGroup string   `yaml:"consumerGroup"`
+}
+
+type GrpcConf struct {
+	Addr string `yaml:"addr"`
 }
 
 type OtelConf struct {

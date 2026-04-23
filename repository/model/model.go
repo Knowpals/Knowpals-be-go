@@ -7,6 +7,8 @@ func InitTable(db *gorm.DB) error {
 		&User{},
 		&Class{},
 		&ClassStudent{},
+		&ChatMessage{},
+		&StudentReport{},
 		&KnowledgePoint{},
 		&KnowledgeSegmentMapping{},
 		&Question{},

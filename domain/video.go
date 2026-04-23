@@ -10,6 +10,9 @@ type Video struct {
 	Duration  int
 	CreatedAt time.Time
 	Deadline  time.Time
+	ReviewStatus string
+	ReviewedAt   *time.Time
+	PublishedAt  *time.Time
 }
 
 type Segment struct {

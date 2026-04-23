@@ -5,6 +5,8 @@ import "gorm.io/gorm"
 type Question struct {
 	gorm.Model
 	VideoID   uint    `gorm:"column:video_id;type:bigint;not null;index"`
+	StudentID *uint   `gorm:"column:student_id;type:bigint;index"` // 空表示公共题（班级任务）；非空表示个性化题
+	Source    string  `gorm:"column:source;type:enum('pipeline','agent');not null;default 'pipeline';index"`
 	SegmentID *uint   `gorm:"column:segment_id;type:bigint;index"` //为空为整视频题，非空为分段题
 	Type      string  `gorm:"column:type;type:enum('choice','fill','judge');not null"`
 	Content   string  `gorm:"column:content;type:text;not null"`

@@ -6,9 +6,11 @@ package main
 
 import (
 	"github.com/Knowpals/Knowpals-be-go/config"
+	"github.com/Knowpals/Knowpals-be-go/controller/agent"
 	"github.com/Knowpals/Knowpals-be-go/controller/behavior"
 	classController "github.com/Knowpals/Knowpals-be-go/controller/class"
 	"github.com/Knowpals/Knowpals-be-go/controller/question"
+	"github.com/Knowpals/Knowpals-be-go/controller/review"
 	"github.com/Knowpals/Knowpals-be-go/controller/statistic"
 	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
 	"github.com/Knowpals/Knowpals-be-go/controller/video"
@@ -22,9 +24,12 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/pkg/ijwt"
 	"github.com/Knowpals/Knowpals-be-go/repository/cache"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
+	agent2 "github.com/Knowpals/Knowpals-be-go/service/agent"
+	"github.com/Knowpals/Knowpals-be-go/service/agentclient"
 	behaviorService "github.com/Knowpals/Knowpals-be-go/service/behavior"
 	classService "github.com/Knowpals/Knowpals-be-go/service/class"
 	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
+	question2 "github.com/Knowpals/Knowpals-be-go/service/question"
 	statService "github.com/Knowpals/Knowpals-be-go/service/statistic"
 	"github.com/Knowpals/Knowpals-be-go/service/user"
 	video2 "github.com/Knowpals/Knowpals-be-go/service/video"
@@ -49,6 +54,9 @@ func InitApp(conf *config.Config) *App {
 		ioc.InitCOS,
 		ioc.InitKafka,
 		ioc.InitKafkaConsumerGroupID,
+		ioc.InitGRPCConn,
+		ioc.InitMemoryClient,
+		ioc.InitAgentClient,
 
 		//infra
 		email.NewEmailClient,
@@ -62,12 +70,14 @@ func InitApp(conf *config.Config) *App {
 		dao.NewKnowledgeDao,
 		dao.NewSegmentDao,
 		dao.NewQuestionDao,
+		dao.NewReportDao,
 		dao.NewStatisticDao,
 		dao.NewBehaviorDao,
 		cache.NewAuthCache,
 		producer.NewSaramaProducer,
 		consumer.NewSaramaConsumer,
 		events.NewPipelineWorker,
+		dao.NewChatDao,
 
 		//service
 		user.NewUserService,
@@ -76,6 +86,9 @@ func InitApp(conf *config.Config) *App {
 		behaviorService.NewBehaviorService,
 		statService.NewStatService,
 		pipeline.NewPipelineService,
+		agentclient.NewMemoryWriter,
+		question2.NewQuestionService,
+		agent2.NewAgentService,
 
 		//controller
 		user2.NewUserController,
@@ -84,6 +97,8 @@ func InitApp(conf *config.Config) *App {
 		question.NewQuestionController,
 		behavior.NewBehaviorController,
 		statistic.NewStatController,
+		agent.NewAgentController,
+		review.NewReviewController,
 
 		//web
 		web.NewGinEngine,

@@ -1,9 +1,11 @@
 package web
 
 import (
+	"github.com/Knowpals/Knowpals-be-go/controller/agent"
 	"github.com/Knowpals/Knowpals-be-go/controller/behavior"
 	"github.com/Knowpals/Knowpals-be-go/controller/class"
 	"github.com/Knowpals/Knowpals-be-go/controller/question"
+	"github.com/Knowpals/Knowpals-be-go/controller/review"
 	"github.com/Knowpals/Knowpals-be-go/controller/statistic"
 	"github.com/Knowpals/Knowpals-be-go/controller/user"
 	"github.com/Knowpals/Knowpals-be-go/controller/video"
@@ -18,6 +20,8 @@ func NewGinEngine(
 	qc question.QuestionController,
 	bc behavior.BehaviorController,
 	sc statistic.StatController,
+	ac agent.AgentController,
+	rc review.ReviewController,
 	auth *middleware.AuthMiddleware,
 	log *middleware.LoggerMiddleware,
 	cors *middleware.CorsMiddleware,
@@ -34,5 +38,7 @@ func NewGinEngine(
 	RegisterQuestionRoute(apiV1, qc, auth)
 	RegisterBehaviorRoute(apiV1, bc, auth)
 	RegisterStatisticRoute(apiV1, sc, auth)
+	RegisterAgentRoute(apiV1, ac, auth)
+	RegisterReviewRoute(apiV1, rc, auth)
 	return r
 }

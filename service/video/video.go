@@ -2,7 +2,7 @@ package video
 
 import (
 	"context"
-
+	errors1 "errors"
 	"github.com/Knowpals/Knowpals-be-go/domain"
 	"github.com/Knowpals/Knowpals-be-go/errors"
 	"github.com/Knowpals/Knowpals-be-go/repository/dao"
@@ -12,6 +12,8 @@ type VideoService interface {
 	SaveVideo(ctx context.Context, video domain.Video) (uint, error)
 	GetVideo(ctx context.Context, videoID uint) (domain.Video, error)
 	GetVideoDetail(ctx context.Context, videoID uint) (domain.Video, []domain.Segment, []domain.KnowledgePoint, []domain.Question, map[uint][]domain.KnowledgePoint, error)
+	StartReview(ctx context.Context, videoID uint) error
+	Publish(ctx context.Context, videoID uint) error
 	AssignVideoToClasses(ctx context.Context, videoID uint, classIDs []uint) error
 	ListClassVideoTasks(ctx context.Context, classID uint) ([]domain.Video, error)
 	ListMyUploadedVideos(ctx context.Context, teacherID uint) ([]domain.Video, error)
@@ -62,6 +64,13 @@ func (vs *videoService) GetVideoDetail(ctx context.Context, videoID uint) (domai
 }
 
 func (vs *videoService) AssignVideoToClasses(ctx context.Context, videoID uint, classIDs []uint) error {
+	st, err := vs.dao.GetVideoReviewStatus(ctx, videoID)
+	if err != nil {
+		return errors.UploadVideoError(err)
+	}
+	if st != "published" {
+		return errors.VideoNotPublishedError(errors1.New("未发布不可下发"))
+	}
 	return vs.dao.AssignVideoToClasses(ctx, videoID, classIDs)
 }
 

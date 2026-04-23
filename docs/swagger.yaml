@@ -1,4 +1,134 @@
 definitions:
+  agent.ChatMessage:
+    properties:
+      created_at:
+        type: string
+      knowledge_id:
+        type: string
+      role:
+        type: string
+      text:
+        type: string
+      video_id:
+        type: string
+    type: object
+  agent.ChatReq:
+    properties:
+      knowledge_id:
+        type: string
+      text:
+        type: string
+      video_id:
+        type: string
+    required:
+    - text
+    type: object
+  agent.ChatResp:
+    properties:
+      context:
+        type: string
+      reply:
+        type: string
+      video_id:
+        type: string
+    type: object
+  agent.GenerateQuizReq:
+    properties:
+      num_questions:
+        type: integer
+      video_id:
+        type: string
+    required:
+    - num_questions
+    - video_id
+    type: object
+  agent.GenerateQuizResp:
+    properties:
+      quizzes:
+        items:
+          $ref: '#/definitions/agent.QuizItem'
+        type: array
+    type: object
+  agent.GenerateReportReq:
+    properties:
+      force_regen:
+        type: boolean
+      video_id:
+        type: string
+    required:
+    - video_id
+    type: object
+  agent.GenerateReportResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/agent.ReportItem'
+        type: array
+      overall_summary:
+        type: string
+      video_id:
+        type: string
+    type: object
+  agent.GetChatHistoryResp:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/agent.ChatMessage'
+        type: array
+    type: object
+  agent.QuizItem:
+    properties:
+      analysis:
+        type: string
+      answer:
+        type: string
+      difficulty:
+        type: string
+      knowledge_id:
+        type: string
+      options:
+        items:
+          type: string
+        type: array
+      question:
+        type: string
+      type:
+        type: string
+    type: object
+  agent.ReportItem:
+    properties:
+      behavior_pattern:
+        items:
+          type: string
+        type: array
+      knowledge_id:
+        type: string
+      mastery:
+        type: number
+      recommended_segments:
+        items:
+          $ref: '#/definitions/agent.SegmentRef'
+        type: array
+      summary:
+        type: string
+      trend:
+        type: string
+      weakness:
+        items:
+          type: string
+        type: array
+    type: object
+  agent.SegmentRef:
+    properties:
+      end_ms:
+        type: integer
+      segment_id:
+        type: string
+      start_ms:
+        type: integer
+      video_id:
+        type: string
+    type: object
   behavior.GetClassVideoProgressResp:
     properties:
       progress_list:
@@ -544,6 +674,182 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/v1/agent/chat:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/agent.ChatReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/agent.ChatResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 智能对话助手
+      tags:
+      - agent
+  /api/v1/agent/history:
+    get:
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频ID（可选）
+        in: query
+        name: video_id
+        type: string
+      - description: 条数（默认100，最大500）
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/agent.GetChatHistoryResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取聊天历史记录
+      tags:
+      - agent
+  /api/v1/agent/quiz:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/agent.GenerateQuizReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/agent.GenerateQuizResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 生成习题
+      tags:
+      - agent
+  /api/v1/agent/report:
+    get:
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频ID
+        in: query
+        name: video_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/agent.GenerateReportResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 获取已存储的学习报告
+      tags:
+      - agent
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/agent.GenerateReportReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/http.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/agent.GenerateReportResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 生成学情报告
+      tags:
+      - agent
   /api/v1/behavior/class-progress/{class_id}/{status}:
     get:
       description: 获取学生在某个班级下的视频学习情况
@@ -1262,6 +1568,54 @@ paths:
       summary: 发送验证码
       tags:
       - user
+  /api/v1/video/{video_id}/review/publish:
+    post:
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频ID
+        in: path
+        name: video_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 发布视频
+      tags:
+      - review
+  /api/v1/video/{video_id}/review/start:
+    post:
+      parameters:
+      - default: Bearer
+        description: Bearer Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 视频ID
+        in: path
+        name: video_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            $ref: '#/definitions/http.Response'
+      summary: 视频进入审核
+      tags:
+      - review
   /api/v1/video/getDetail/{video_id}:
     get:
       description: 获取视频详情、分段、视频内题目、课后习题
