@@ -13,6 +13,9 @@ type StudentVideoProgress struct {
 	LastSec       int    `gorm:"default:0;comment:上次上报秒数(用于累计观看时长)"`
 	Status        string `gorm:"type:enum('finished','todo','expired');default 'todo';not null;comment:观看状态"`
 	WatchDuration int    `gorm:"default:0;comment:总观看时长(秒)"`
+
+	User  User  `gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Video Video `gorm:"foreignKey:VideoID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (StudentVideoProgress) TableName() string {
@@ -28,6 +31,10 @@ type StudentBehavior struct {
 	ReplayCount   int     `gorm:"default:0;comment:回放当前分段次数"`
 	WatchDuration float64 `gorm:"default:0;comment:本段观看时长"`
 	PauseDuration float64 `gorm:"default:0;comment:本段暂停时长"`
+
+	Student User    `gorm:"foreignKey:StudentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Video   Video   `gorm:"foreignKey:VideoID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Segment Segment `gorm:"foreignKey:SegmentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (StudentBehavior) TableName() string {

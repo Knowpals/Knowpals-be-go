@@ -5,22 +5,25 @@ import "gorm.io/gorm"
 func InitTable(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&User{},
+		&Video{},
 		&Class{},
-		&ClassStudent{},
-		&ChatMessage{},
-		&StudentReport{},
+
+		&Segment{},
 		&KnowledgePoint{},
-		&KnowledgeSegmentMapping{},
 		&Question{},
+
+		&ClassStudent{},
+		&VideoToClass{},
+
+		&PipelineJob{},
+		&PipelineJobStage{},
+		&KnowledgeSegmentMapping{},
 		&QuestionToKnowledge{},
 		&StudentAnswer{},
 		&StudentBehavior{},
 		&StudentVideoProgress{},
-		&Video{},
-		&VideoToClass{},
-		&Segment{},
-		&PipelineJob{},
-		&PipelineJobStage{},
+		&ChatMessage{},
+		&StudentReport{},
 	)
 
 }

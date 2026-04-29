@@ -104,7 +104,7 @@ func (vd *videoDao) ListSegmentsByVideoID(ctx context.Context, videoID uint) ([]
 	for _, s := range segs {
 		out = append(out, domain.Segment{
 			ID:        s.ID,
-			SegmentID: s.SegmentID,
+			SegmentID: s.SegmentSID,
 			VideoID:   s.VideoID,
 			Start:     s.Start,
 			End:       s.End,

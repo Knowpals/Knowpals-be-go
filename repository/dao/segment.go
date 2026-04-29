@@ -41,10 +41,10 @@ func (sd *segmentDao) BatchUpsertSegments(ctx context.Context, segments []domain
 				return fmt.Errorf("segment_id is required")
 			}
 			var existing model.Segment
-			err := tx.Where("segment_id = ?", seg.SegmentID).Take(&existing).Error
+			err := tx.Where("segment_sid = ?", seg.SegmentID).Take(&existing).Error
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				row := model.Segment{
-					SegmentID: seg.SegmentID,
+					SegmentSID: seg.SegmentID,
 					VideoID:   seg.VideoID,
 					Start:     seg.Start,
 					End:       seg.End,
@@ -102,13 +102,13 @@ func (sd *segmentDao) UpsertKnowledgeSegmentMappings(ctx context.Context, segmen
 
 	return sd.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var segModels []model.Segment
-		if err := tx.Where("segment_id IN ?", segmentIDs).Find(&segModels).Error; err != nil {
+		if err := tx.Where("segment_sid IN ?", segmentIDs).Find(&segModels).Error; err != nil {
 			return err
 		}
 		segIDToPK := make(map[string]uint, len(segModels))
 		segPKs := make([]uint, 0, len(segModels))
 		for _, s := range segModels {
-			segIDToPK[s.SegmentID] = s.ID
+			segIDToPK[s.SegmentSID] = s.ID
 			segPKs = append(segPKs, s.ID)
 		}
 		if len(segIDToPK) == 0 {
@@ -169,15 +169,15 @@ func (sd *segmentDao) BatchGetSegmentBySegmentID(ctx context.Context, segmentID 
 	}
 
 	var records []model.Segment
-	err := sd.db.WithContext(ctx).Where("segment_id IN ?", segmentID).Find(&records).Error
+	err := sd.db.WithContext(ctx).Where("segment_sid IN ?", segmentID).Find(&records).Error
 	if err != nil {
 		return nil, err
 	}
 
 	for _, r := range records {
-		out[r.SegmentID] = domain.Segment{
+		out[r.SegmentSID] = domain.Segment{
 			ID:        r.ID,
-			SegmentID: r.SegmentID,
+			SegmentID: r.SegmentSID,
 			VideoID:   r.VideoID,
 			Start:     r.Start,
 			End:       r.End,
