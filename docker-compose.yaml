@@ -124,6 +124,7 @@ services:
       - mysql
       - redis
       - kafka
+      - knowpals-python
     volumes:
       - /root/knowpals/config/go-config.yaml:/root/go-config.yaml
       - /root/knowpals/logs:/logs
@@ -143,6 +144,15 @@ services:
       - /root/knowpals/config/python-config.yaml:/root/python-config.yaml
     environment:
       - CONFIG_PATH=/root/python-config.yaml
+    restart: always
+
+  knowpals-web:
+    build: ./knowpals-web
+    container_name: knowpals-web
+    ports:
+      - "127.0.0.1:8082:80"
+    depends_on:
+      - knowpals-go
     restart: always
 
 volumes:

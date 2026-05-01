@@ -11,8 +11,8 @@ import (
 	agent2 "github.com/Knowpals/Knowpals-be-go/controller/agent"
 	behavior2 "github.com/Knowpals/Knowpals-be-go/controller/behavior"
 	class2 "github.com/Knowpals/Knowpals-be-go/controller/class"
-	"github.com/Knowpals/Knowpals-be-go/controller/question"
-	review2 "github.com/Knowpals/Knowpals-be-go/controller/review"
+	question2 "github.com/Knowpals/Knowpals-be-go/controller/question"
+	"github.com/Knowpals/Knowpals-be-go/controller/review"
 	statistic2 "github.com/Knowpals/Knowpals-be-go/controller/statistic"
 	user2 "github.com/Knowpals/Knowpals-be-go/controller/user"
 	video2 "github.com/Knowpals/Knowpals-be-go/controller/video"
@@ -31,7 +31,7 @@ import (
 	"github.com/Knowpals/Knowpals-be-go/service/behavior"
 	"github.com/Knowpals/Knowpals-be-go/service/class"
 	"github.com/Knowpals/Knowpals-be-go/service/pipeline"
-	question2 "github.com/Knowpals/Knowpals-be-go/service/question"
+	"github.com/Knowpals/Knowpals-be-go/service/question"
 	"github.com/Knowpals/Knowpals-be-go/service/statistic"
 	"github.com/Knowpals/Knowpals-be-go/service/user"
 	"github.com/Knowpals/Knowpals-be-go/service/video"
@@ -70,8 +70,8 @@ func InitApp(conf *config.Config) *App {
 	memoryWriter := agentclient.NewMemoryWriter(memoryServiceClient)
 	behaviorService := behavior.NewBehaviorService(behaviorDao, videoDao, segmentDao, memoryWriter)
 	videoController := video2.NewVideoController(cosCOSClient, videoService, pipelineService, behaviorService)
-	questionService := question2.NewQuestionService(questionDao, segmentDao, videoDao, memoryWriter)
-	questionController := question.NewQuestionController(questionService)
+	service := question.NewQuestionService(questionDao, segmentDao, videoDao, memoryWriter)
+	questionController := question2.NewQuestionController(service)
 	behaviorController := behavior2.NewBehaviorController(behaviorService)
 	statisticDao := dao.NewStatisticDao(db)
 	statService := statistic.NewStatService(statisticDao)
@@ -81,7 +81,7 @@ func InitApp(conf *config.Config) *App {
 	reportDao := dao.NewReportDao(db)
 	agentService := agent.NewAgentService(agentServiceClient, knowledgeDao, questionDao, chatDao, reportDao)
 	agentController := agent2.NewAgentController(agentService)
-	reviewController := review2.NewReviewController(videoService)
+	reviewController := review.NewReviewController(videoService)
 	authMiddleware := middleware.NewAuthMiddleware(jwtHandler)
 	loggerMiddleware := middleware.NewLoggerMiddleware(logger)
 	corsMiddleware := middleware.NewCorsMiddleware()

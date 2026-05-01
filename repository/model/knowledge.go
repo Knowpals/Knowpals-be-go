@@ -4,12 +4,10 @@ import "gorm.io/gorm"
 
 type KnowledgePoint struct {
 	gorm.Model
-	KnowledgeID string `gorm:"type:varchar(64);uniqueIndex"`
+	KnowledgeID string `gorm:"column:knowledge_id;type:varchar(64);uniqueIndex"`
 	VideoID     uint   `gorm:"column:video_id;not null;index"`
 	Title       string `gorm:"column:title;type:varchar(128);not null;index"`
 	Content     string `gorm:"column:content;type:text;not null;index:,class:FULLTEXT"`
-
-	Video Video `gorm:"foreignKey:VideoID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (KnowledgePoint) TableName() string {
@@ -22,9 +20,6 @@ type KnowledgeSegmentMapping struct {
 	gorm.Model
 	KnowledgePk uint `gorm:"column:knowledge_id;not null;index"`
 	SegmentPk   uint `gorm:"column:segment_id;not null;index"`
-
-	Knowledge KnowledgePoint `gorm:"foreignKey:KnowledgePk;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Segment   Segment        `gorm:"foreignKey:SegmentPk;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (KnowledgeSegmentMapping) TableName() string {

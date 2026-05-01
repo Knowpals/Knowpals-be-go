@@ -44,12 +44,10 @@ type Segment struct {
 	// 业务侧的 segment string id（来自 pipeline），不要用 column=segment_id，
 	// 否则会和其它表的 segment_id 外键列（引用 segments.id）冲突，导致迁移时生成反向外键。
 	SegmentSID string `gorm:"column:segment_sid;type:varchar(64);uniqueIndex"`
-	VideoID   uint   `gorm:"column:video_id;not null;index"`
-	Start     int    `gorm:"column:start;type:int;not null"`
-	End       int    `gorm:"column:end;type:int;not null"`
-	Text      string `gorm:"column:text;type:text"`
-
-	Video Video `gorm:"foreignKey:VideoID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	VideoID    uint   `gorm:"column:video_id;not null;index"`
+	Start      int    `gorm:"column:start;type:int;not null"`
+	End        int    `gorm:"column:end;type:int;not null"`
+	Text       string `gorm:"column:text;type:text"`
 }
 
 func (Segment) TableName() string {

@@ -10,9 +10,6 @@ type ChatMessage struct {
 	Text        string `gorm:"column:text;type:text;not null"`
 	VideoID     *uint  `gorm:"column:video_id;type:bigint;index:idx_student_video_created"`
 	KnowledgeID string `gorm:"column:knowledge_id;type:varchar(64);index"`
-
-	Student User   `gorm:"foreignKey:StudentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Video   *Video `gorm:"foreignKey:VideoID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 func (ChatMessage) TableName() string {

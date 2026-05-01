@@ -28,9 +28,6 @@ type QuestionToKnowledge struct {
 	gorm.Model
 	QuestionID  uint `gorm:"column:question_id;not null;index"`
 	KnowledgeID uint `gorm:"column:knowledge_id;not null;index"`
-
-	Question  Question       `gorm:"foreignKey:QuestionID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Knowledge KnowledgePoint `gorm:"foreignKey:KnowledgeID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (QuestionToKnowledge) TableName() string {
@@ -45,11 +42,6 @@ type StudentAnswer struct {
 	TimeCost   float64 `gorm:"comment:答题耗时(秒)"`
 	VideoID    uint    `gorm:"not null;index:idx_student_video;comment:冗余-视频ID，方便统计"`
 	SegmentID  *uint   `gorm:"index;comment:冗余-分段ID，可为null（整体题）"`
-
-	Student  User     `gorm:"foreignKey:StudentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Question Question `gorm:"foreignKey:QuestionID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Video    Video    `gorm:"foreignKey:VideoID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Segment  *Segment `gorm:"foreignKey:SegmentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 func (StudentAnswer) TableName() string {

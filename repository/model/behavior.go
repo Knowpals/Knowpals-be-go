@@ -31,10 +31,6 @@ type StudentBehavior struct {
 	ReplayCount   int     `gorm:"default:0;comment:回放当前分段次数"`
 	WatchDuration float64 `gorm:"default:0;comment:本段观看时长"`
 	PauseDuration float64 `gorm:"default:0;comment:本段暂停时长"`
-
-	Student User    `gorm:"foreignKey:StudentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Video   Video   `gorm:"foreignKey:VideoID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Segment Segment `gorm:"foreignKey:SegmentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (StudentBehavior) TableName() string {

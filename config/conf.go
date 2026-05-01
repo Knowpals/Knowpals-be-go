@@ -44,10 +44,9 @@ type SmtpConf struct {
 }
 
 type COSConf struct {
-	SecretID    string `yaml:"secretID"`
-	SecretKey   string `yaml:"secretKey"`
-	URL         string `yaml:"url"`
-	InternalUrl string `yaml:"internalUrl"`
+	SecretID  string `yaml:"secretID"`
+	SecretKey string `yaml:"secretKey"`
+	URL       string `yaml:"url"`
 }
 
 type KafkaConf struct {

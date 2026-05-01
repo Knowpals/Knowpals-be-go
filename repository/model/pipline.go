@@ -28,8 +28,6 @@ type PipelineJobStage struct {
 	RetryCount int    `gorm:"column:retry_count;type:int;default:0"`
 	Output     string `gorm:"type:text"`
 	UpdatedAt  time.Time
-
-	Job PipelineJob `gorm:"foreignKey:JobID;references:JobID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (PipelineJobStage) TableName() string {

@@ -39,16 +39,15 @@ func (kd *knowledgeDao) BatchUpsertKnowledgePoints(ctx context.Context, kps []do
 		})
 	}
 
+	// MySQL：按唯一列 knowledge_id 做 ON DUPLICATE KEY UPDATE；不要写 OnConstraint（PG 专用，且索引名常与 DB 不一致）。
 	return kd.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "knowledge_id"},
-			},
-			OnConstraint: "idx_knowledge_id",
+			Columns: []clause.Column{{Name: "knowledge_id"}},
 			DoUpdates: clause.AssignmentColumns([]string{
 				"video_id",
 				"title",
 				"content",
+				"updated_at",
 			}),
 		}).
 		CreateInBatches(&records, 200).

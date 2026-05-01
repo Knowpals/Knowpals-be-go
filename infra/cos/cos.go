@@ -63,6 +63,5 @@ func (c *COSClient) SignUrl(ctx context.Context, fileKey string) (string, error)
 	if err != nil {
 		return "", err
 	}
-
 	return signedURL.String(), nil
 }
